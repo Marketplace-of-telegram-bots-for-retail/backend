@@ -1,5 +1,8 @@
 **/migrations/*
 !**migrations/__init__.py
+
+docker-compose_copy.yml
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -125,7 +128,7 @@ celerybeat.pid
 
 # Environments
 
-#.env
+.env
 .venv
 env/
 venv/
