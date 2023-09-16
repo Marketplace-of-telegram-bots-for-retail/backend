@@ -1,3 +1,5 @@
+**/migrations/*
+!**migrations/__init__.py
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -109,6 +111,8 @@ ipython_config.py
 #   https://pdm.fming.dev/#use-with-ide
 .pdm.toml
 
+
+
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
@@ -120,7 +124,8 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
+
+#.env
 .venv
 env/
 venv/
