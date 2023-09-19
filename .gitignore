@@ -1,3 +1,6 @@
+docker-compose_copy.yml
+
+
 **/migrations/*
 !**migrations/__init__.py
 # Byte-compiled / optimized / DLL files
@@ -125,7 +128,7 @@ celerybeat.pid
 
 # Environments
 
-#.env
+.env
 .venv
 env/
 venv/
