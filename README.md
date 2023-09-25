@@ -1,30 +1,67 @@
-# Backend of Marketplace telegram bots for retail TEST
-Backend of Marketplace telegram bots for retail
+# Маркетплейс телеграм ботов для ритейла
 
-  ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-  ![DjangoREST](https://img.shields.io/badge/DJANGO-REST-ff1709?style=for-the-badge&logo=django&logoColor=white&color=ff1709&labelColor=gray) 
-  ![Postgres](https://img.shields.io/badge/postgres-%23316192.svg?style=for-the-badge&logo=postgresql&logoColor=white)
-  ![Nginx](https://img.shields.io/badge/nginx-%23009639.svg?style=for-the-badge&logo=nginx&logoColor=white)
-  ![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)
-  ![GitHub Actions](https://img.shields.io/badge/github%20actions-%232671E5.svg?style=for-the-badge&logo=githubactions&logoColor=white)
+## Описание
 
+Проект на данном этапе находится в стадии разработки.
 
-### Локальный запуск для разработки на linux
+## Технологии
 
-  - клонируем develop
-  - cd backend где docker-compose_copy.yml
-  - можно проверить версию python желательно 3.10.12 но в принципе скорее всего и так все будет работать
-  - python3 -m venv venv
-  - pip install -m backend/requirements.txt
-  - проверьте что от прошлых проектов не осталось запущенных контейнеров, которые занимают наши порты и хосты
-  - sudo docker ps -a
-  - sudo docker compose -f docker-compose_copy.yml up -d # это поднимет postgres, проверить что docker-compose_copy.yml и .env в гитигноре и удалены из      индекса они не должны пушиться
-  - python manage.py makemigrations ### Предлагаю не пушить миграции до момента пока все модели не будут готовы, migrations в .gitignor
-  - python manage.py migrate
-  - python manage.py createsuperuser
-  - python manage.py runserver
-  - остановка базы
-  - sudo docker compose -f docker-compose_copy.yml down
-  
- 
-  
+- Python 3.10.12;
+- Django 4.2.5;
+- Django REST framework 3.14.0.
+
+## Запуск проекта
+
+- Установите и активируйте виртуальное окружение;
+
+- Установите зависимости из файла `requirements.txt`:
+
+```text
+pip install -r requirements.txt
+```
+
+- В корне репозитория создайте `.env` файл и заполните следующими
+данными:
+
+  - в переменной `POSTGRES_DB` должно быть название базы данных;
+
+  - в переменной `POSTGRES_USER` должно быть имя пользователя БД;
+
+  - в переменной `POSTGRES_PASSWORD` должен быть пароль пользователя БД;
+
+  - в переменной `DB_HOST` должен быть адрес, по которому _Django_ будет
+  соединяться с базой данных;
+
+  - в переменной `DB_PORT` должен быть порт, по которому _Django_ будет
+  обращаться к базе данных;
+
+  - в переменную `SECRET_KEY` укажите секретный ключ для конкретной установки
+  _Django_;
+
+  - в переменную `DEBUG` укажите значение режима отладки;
+
+  - в переменную `ALLOWED_HOSTS` укажите список строк, представляющих имена
+  хоста/домена, которые может обслуживать это _Django_ приложение.
+
+- В папке с файлом `manage.py` запустите миграции в базу данных:
+
+```text 
+python manage.py migrate 
+```
+
+- В папке с файлом `manage.py` выполните команду:
+
+```text
+python manage.py runserver
+```
+
+- Или если установлен GNU Make (На MacOS и Linux он уже установлен),
+то из папки проекта выполните команду:
+
+```text
+make
+```
+
+## Авторы
+
+Работаем над этим.
