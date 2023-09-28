@@ -73,4 +73,6 @@ class ReviewListSerializer(serializers.ModelSerializer):
 		request = self.context.get('request')
 		if not request or request.user.is_anonymous:
 			return False
-		return Review.objects.filter(user=request.user, product=obj).exists()
+		return Review.objects.filter(
+			user=request.user, product=obj, is_favorite=True
+		).exists()
