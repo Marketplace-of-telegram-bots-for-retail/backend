@@ -57,7 +57,9 @@ class Review(models.Model):
         verbose_name_plural = 'Отзывы'
         constraints = [
             UniqueConstraint(
-                fields=['user, product'], name='rating_allowed_once')
+                fields=['user, product'],
+                name='rating_allowed_once'
+            )
         ]
 
     def __str__(self):
