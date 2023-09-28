@@ -1,4 +1,5 @@
-MANAGE = python manage.py
+WORKDIR = backend
+MANAGE = python $(WORKDIR)/manage.py
 
 run:
 	$(MANAGE) runserver

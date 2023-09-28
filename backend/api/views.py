@@ -1,5 +1,59 @@
-from django.db.models import F, OuterRef, Prefetch
-from django_filters import rest_framework as dj_filters
-from rest_framework import mixins
-from rest_framework.viewsets import GenericViewSet
+from functools import reduce
+from operator import or_
 
+from django.db.models import Q
+
+from rest_framework import filters
+
+from api.mixins import CRUDAPIView, ListRetrieveAPIView
+from api.permissions import AuthorCanEditAndDelete
+from api.serializers import (
+    CategorySerializer,
+    ProductReadOnlySerializer,
+    ProductSerializer,
+)
+from core.paginations import Pagination
+from products.models import Category, Product
+
+
+class CategoryAPIView(ListRetrieveAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+
+class ProductAPIView(CRUDAPIView):
+    pagination_class = Pagination
+    permission_classes = (AuthorCanEditAndDelete,)
+    filter_backends = (
+        filters.SearchFilter,
+    )
+    search_fields = ('^name',)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action == 'list' or self.action == 'retrieve':
+            return ProductReadOnlySerializer
+        return ProductSerializer
+
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        if self.action == 'list' or self.action == 'retrieve':
+            categories = self.request.query_params.getlist('category')
+            if categories:
+                queryset = queryset.filter(
+                    reduce(
+                        or_,
+                        [
+                            Q(category__name=category)
+                            for category in categories
+                        ],
+                    ),
+                ).distinct()
+            price = self.request.query_params.getlist('price')
+            if price:
+                queryset = queryset.filter(
+                    Q(price__gte=int(price[0])) & Q(price__lte=int(price[1]))
+                )
+        return queryset
