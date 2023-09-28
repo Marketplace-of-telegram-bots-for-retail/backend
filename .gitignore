@@ -1,3 +1,6 @@
+docker-compose_copy.yml
+
+
 **/migrations/*
 !**migrations/__init__.py
 
