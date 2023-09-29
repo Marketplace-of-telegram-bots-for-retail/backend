@@ -1,14 +1,70 @@
-from django.db.models import F, OuterRef, Prefetch
+from functools import reduce
+from operator import or_
+
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from django_filters import rest_framework as dj_filters
-from rest_framework import mixins, viewsets, status
+from rest_framework import filters, viewsets, status
+from rest_framework.response import Response
+from rest_framework.viewsets import GenericViewSet
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.viewsets import GenericViewSet
-from rest_framework.response import Response
 
-from api.serializers import ReviewSerializer, ReviewListSerializer
-from products.models import Product, Review
+from api.mixins import CRUDAPIView, ListRetrieveAPIView
+from api.permissions import AuthorCanEditAndDelete
+from api.serializers import (
+    CategorySerializer,
+    ProductReadOnlySerializer,
+    ProductSerializer,
+    ReviewSerializer,
+    ReviewListSerializer,
+)
+from core.paginations import Pagination
+from products.models import Category, Product, Review
+
+
+class CategoryAPIView(ListRetrieveAPIView):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+
+
+class ProductAPIView(CRUDAPIView):
+    pagination_class = Pagination
+    permission_classes = (AuthorCanEditAndDelete,)
+    filter_backends = (
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    )
+    search_fields = ('^name',)
+    ordering_fields = ('created', 'price')
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return ProductReadOnlySerializer
+        return ProductSerializer
+
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        if self.action in ('list', 'retrieve'):
+            categories = self.request.query_params.getlist('category')
+            if categories:
+                queryset = queryset.filter(
+                    reduce(
+                        or_,
+                        [
+                            Q(category__name=category)
+                            for category in categories
+                        ],
+                    ),
+                ).distinct()
+            price = self.request.query_params.getlist('price')
+            if price:
+                queryset = queryset.filter(
+                    Q(price__gte=int(price[0])) & Q(price__lte=int(price[1]))
+                )
+        return queryset
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
