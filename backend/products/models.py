@@ -3,6 +3,7 @@ import uuid
 from django.db import models
 
 from core.models import TimestampedModel
+from core.utils import user_directory_path
 from users.models import User
 
 
@@ -35,25 +36,25 @@ class Product(TimestampedModel):
     )
     image_1 = models.ImageField(
         'картинка №1',
-        upload_to='products/',
+        upload_to=user_directory_path,
         blank=True,
         null=True,
     )
     image_2 = models.ImageField(
         'картинка №2',
-        upload_to='products/',
+        upload_to=user_directory_path,
         blank=True,
         null=True,
     )
     image_3 = models.ImageField(
         'картинка №3',
-        upload_to='products/',
+        upload_to=user_directory_path,
         blank=True,
         null=True,
     )
     image_4 = models.ImageField(
         'картинка №4',
-        upload_to='products/',
+        upload_to=user_directory_path,
         blank=True,
         null=True,
     )
@@ -62,11 +63,6 @@ class Product(TimestampedModel):
         default=uuid.uuid4,
         editable=False,
     )
-    # price = models.DecimalField(
-    #     'стоимость',
-    #     max_digits=11,
-    #     decimal_places=2,
-    # )
     price = models.IntegerField('стоимость')
     category = models.ManyToManyField(
         Category,
