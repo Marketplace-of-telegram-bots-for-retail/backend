@@ -3,11 +3,12 @@ from operator import or_
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, viewsets, status
-from rest_framework.response import Response
-from rest_framework.viewsets import GenericViewSet
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.status import HTTP_200_OK
+from rest_framework.viewsets import ModelViewSet
 
 from api.mixins import CRUDAPIView, ListRetrieveAPIView
 from api.permissions import AuthorCanEditAndDelete
@@ -15,8 +16,8 @@ from api.serializers import (
     CategorySerializer,
     ProductReadOnlySerializer,
     ProductSerializer,
-    ReviewSerializer,
     ReviewListSerializer,
+    ReviewSerializer,
 )
 from core.paginations import Pagination
 from products.models import Category, Product, Review
@@ -31,8 +32,8 @@ class ProductAPIView(CRUDAPIView):
     pagination_class = Pagination
     permission_classes = (AuthorCanEditAndDelete,)
     filter_backends = (
-        filters.SearchFilter,
-        filters.OrderingFilter,
+        SearchFilter,
+        OrderingFilter,
     )
     search_fields = ('^name',)
     ordering_fields = ('created', 'price')
@@ -67,7 +68,7 @@ class ProductAPIView(CRUDAPIView):
         return queryset
 
 
-class ReviewViewSet(viewsets.ModelViewSet):
+class ReviewViewSet(ModelViewSet):
     serializer_class = ReviewSerializer
 
     def get_serializer_class(self):
@@ -84,7 +85,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         model_obj = get_object_or_404(Review, user=user, product=product)
         model_obj.is_favorite = True
         model_obj.save()
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=HTTP_200_OK)
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk):
@@ -93,7 +94,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         model_obj = get_object_or_404(Review, user=user, product=product)
         model_obj.is_favorite = False
         model_obj.save()
-        return Response(status=status.HTTP_200_OK)
+        return Response(status=HTTP_200_OK)
 
     def get_queryset(self):
         product_id = self.kwargs.get('product_id')
@@ -106,7 +107,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user, product=product)
 
 
-class OrderViewSet(viewsets.ModelViewSet):
+class OrderViewSet(ModelViewSet):
     def list(self, request, *args, **kwargs):
         return Response({'message': 'в разработке'})
 

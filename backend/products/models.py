@@ -1,10 +1,8 @@
 import uuid
 
-from django.core.validators import MinValueValidator, MaxValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
-from django.db.models import UniqueConstraint
 
-from users.models import User
 from core.models import TimestampedModel
 from core.utils import user_directory_path
 from users.models import User
@@ -28,7 +26,7 @@ class Product(TimestampedModel):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='продавец',
+        verbose_name='пользователь',
     )
     name = models.CharField(
         'название бота',
@@ -80,59 +78,47 @@ class Product(TimestampedModel):
 
     def __str__(self) -> str:
         return self.name
-    pass
 
 
-class Review(models.Model):
+class Review(TimestampedModel):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='user_review',
-        verbose_name='Пользователь'
+        verbose_name='пользователь',
     )
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
         related_name='product_review',
-        verbose_name='Продукт'
+        verbose_name='продукт',
     )
     rating = models.PositiveSmallIntegerField(
-        max_length=5,
+        'рейтинг',
         default=0,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
-        blank=True,
-        verbose_name='Рейтинг'
     )
     text = models.TextField(
+        'текст отзыва',
         max_length=500,
         blank=True,
-        verbose_name='Текст отзыва'
     )
     is_favorite = models.BooleanField(
+        'избранное',
         default=False,
-        verbose_name='Избранное'
-    )
-    is_active = models.BooleanField(
-        default=True,
-        verbose_name='Активный'
-    )
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Дата создания'
-    )
-    updated_at = models.DateTimeField(
-        auto_now=True,
-        verbose_name='Дата изменения'
     )
 
     class Meta:
-        ordering = ['created_at']
-        verbose_name = 'Отзыв'
-        verbose_name_plural = 'Отзывы'
+        verbose_name = 'отзыв'
+        verbose_name_plural = 'отзывы'
+        ordering = ('-created',)
         constraints = [
-            UniqueConstraint(
-                fields=['user, product'],
-                name='rating_allowed_once'
+            models.UniqueConstraint(
+                fields=(
+                    'user',
+                    'product',
+                ),
+                name='rating_allowed_once',
             )
         ]
 
@@ -140,68 +126,63 @@ class Review(models.Model):
         return self.text
 
 
-class Order(models.Model):
+class Order(TimestampedModel):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
         related_name='user_orders',
-        verbose_name='Пользователь',
+        verbose_name='пользователь',
     )
     product_list = models.ManyToManyField(
         Product,
-        through='Order_product_list',
+        through='OrderProductList',
         related_name='product_in_order',
-        verbose_name='Продукт в заказе',
+        verbose_name='продукт в заказе',
     )
-    is_paid = models.BooleanField(default=False, verbose_name='Оплачен')
-    sale_status = models.BooleanField(default=False, verbose_name='Скидка')
-    is_active = models.BooleanField(default=True, verbose_name='Активный')
-    created_at = models.DateTimeField(
-        auto_now_add=True,
-        db_index=True,
-        verbose_name='Дата создания'
-    )
-    updated_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Дата редактирования'
-    )
+    is_paid = models.BooleanField('оплачен', default=False)
+    sale_status = models.BooleanField('скидка', default=False)
 
     class Meta:
-        ordering = ['-created_at']
-        verbose_name = ('Заказ')
-        verbose_name_plural = ('Заказы')
+        verbose_name = 'заказ'
+        verbose_name_plural = 'заказы'
+        ordering = ('-created',)
 
     def __str__(self):
-        return f'order by {self.user}'
+        return f'Заказ от пользователя: {self.user}'
 
 
-class Order_product_list(models.Model):
+class OrderProductList(models.Model):
     order = models.ForeignKey(
         Order,
         on_delete=models.CASCADE,
         related_name='product_in_order',
-        verbose_name='Связанные заказы',
+        verbose_name='связанные заказы',
     )
     product = models.ForeignKey(
         Product,
         on_delete=models.SET_NULL,
         related_name='order_with_product',
-        verbose_name='Связанные продукты',
+        verbose_name='связанные продукты',
+        null=True,
     )
     quantity = models.IntegerField(
+        'количество продуктов',
         validators=[MinValueValidator(1)],
-        verbose_name='Количество продуктов',
     )
 
     class Meta:
+        verbose_name = 'продукт'
+        verbose_name_plural = 'продукты в заказах'
         ordering = ['order']
         constraints = [
             models.UniqueConstraint(
-                fields=('order', 'product', ),
-                name='unique_order'),
+                fields=(
+                    'order',
+                    'product',
+                ),
+                name='unique_order',
+            ),
         ]
-        verbose_name = ('Продукт')
-        verbose_name_plural = ('Продукты в заказах')
 
     def __str__(self):
-        return f'{self.product} {self.quantity} in {self.order}'
+        return f'{self.product} {self.quantity} в заказе {self.order}'

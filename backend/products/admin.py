@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from core.admin import BaseAdmin
-from products.models import Category, Product
+from products.models import Category, Order, OrderProductList, Product, Review
 
 
 @admin.register(Category)
@@ -26,3 +26,18 @@ class ProductAdmin(BaseAdmin):
     )
     list_filter = ('name',)
     search_fields = ('name',)
+
+
+@admin.register(Order)
+class OrderAdmin(BaseAdmin):
+    list_display = ('pk', 'user', 'is_paid', 'sale_status')
+
+
+@admin.register(Review)
+class ReviewAdmin(BaseAdmin):
+    list_display = ('pk', 'user', 'product', 'rating', 'text', 'is_favorite')
+
+
+@admin.register(OrderProductList)
+class OrderProductListAdmin(BaseAdmin):
+    list_display = ('pk', 'order', 'product', 'quantity')

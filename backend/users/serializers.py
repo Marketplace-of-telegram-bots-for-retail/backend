@@ -1,13 +1,13 @@
 from django.contrib.auth import get_user_model
-from djoser.serializers import UserSerializer, UserCreateSerializer
-from rest_framework import serializers
-
 from djoser.conf import settings
+from djoser.serializers import UserCreateSerializer, UserSerializer
+from rest_framework import serializers
 
 User = get_user_model()
 
+
 class CustomUserSerializer(UserSerializer):
-    """Сериализатор для модели User"""
+    '''Сериализатор для модели User.'''
 
     class Meta:
         model = User
@@ -34,7 +34,7 @@ class CustomUserSerializer(UserSerializer):
 
 
 class CustomUserCreateSerializer(UserCreateSerializer):
-    """Сериализатор для создания пользователя"""
+    '''Сериализатор для создания пользователя.'''
 
     class Meta:
         model = User
@@ -53,24 +53,26 @@ class CustomUserCreateSerializer(UserCreateSerializer):
 
 
 class CustomUserCreatePasswordRetypeSerializer(CustomUserCreateSerializer):
-    """Сериализатор для подтверждения пароля"""
-    
+    '''Сериализатор для подтверждения пароля.'''
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["re_password"] = serializers.CharField(
-            style={"input_type": "password"}
+        self.fields['re_password'] = serializers.CharField(
+            style={'input_type': 'password'}
         )
 
     default_error_messages = {
-        "password_mismatch": settings.CONSTANTS.messages.PASSWORD_MISMATCH_ERROR
+        'password_mismatch': (
+            settings.CONSTANTS.messages.PASSWORD_MISMATCH_ERROR,
+        )
     }
 
     def validate(self, attrs):
-        self.fields.pop("re_password", None)
-        re_password = attrs.pop("re_password")
+        self.fields.pop('re_password', None)
+        re_password = attrs.pop('re_password')
         attrs['username'] = attrs['email']
         attrs = super().validate(attrs)
-        if attrs["password"] == re_password:
+        if attrs['password'] == re_password:
             return attrs
         else:
-            self.fail("password_mismatch")
+            self.fail('password_mismatch')

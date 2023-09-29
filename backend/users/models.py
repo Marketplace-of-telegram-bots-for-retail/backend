@@ -1,4 +1,3 @@
-# from products.models import Product
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
@@ -6,7 +5,7 @@ from core.models import TimestampedModel
 
 
 class User(AbstractUser, TimestampedModel):
-    """Кастомная модель пользователя"""
+    '''Кастомная модель пользователя.'''
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -26,18 +25,16 @@ class User(AbstractUser, TimestampedModel):
         max_length=50,
         blank=False,
     )
-    phone  = models.CharField(
+    phone = models.CharField(
         'номер телефона',
         max_length=20,
         blank=False,
     )
     is_bayer = models.BooleanField(default=False)
     is_seller = models.BooleanField(default=False)
-    
-    
+
     def set_username(self):
         self.username = self.email
-    
 
     def __str__(self):
         return self.email
