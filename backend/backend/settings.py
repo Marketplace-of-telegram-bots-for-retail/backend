@@ -92,7 +92,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 """
 
-LANGUAGE_CODE = "ru-ru"
+LANGUAGE_CODE = "ru"
 
 TIME_ZONE = "Europe/Moscow"
 
@@ -120,4 +120,22 @@ REST_FRAMEWORK = {
 
 DEBUG_TOOLBAR_CONFIG = {
     "SHOW_TOOLBAR_CALLBACK": lambda request: True,
+}
+
+DJOSER = {
+    'SERIALIZERS': {
+        'user': 'users.serializers.CustomUserSerializer',
+        'current_user': 'users.serializers.CustomUserSerializer',
+        'user_create': 'users.serializers.CustomUserCreateSerializer',
+        'user_create_password_retype': 'users.serializers.CustomUserCreatePasswordRetypeSerializer',
+        'token': 'djoser.serializers.TokenSerializer',
+        'token_create': 'djoser.serializers.TokenCreateSerializer',
+    },
+    # 'SET_PASSWORD_RETYPE': True,
+    'USER_CREATE_PASSWORD_RETYPE': True,
+    # 'PERMISSIONS': {
+    #     'user': ['rest_framework.permissions.AllowAny'],
+    # },
+    'USER_ID_FIELD': 'email',
+    'LOGIN_FIELD': 'email',
 }
