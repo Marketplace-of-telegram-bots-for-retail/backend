@@ -5,7 +5,7 @@ from api.fields import Base64ImageField
 
 # from core.utils import checking_existence
 # from django.db.models import Avg
-from products.models import Category, Product, Review
+from products.models import Category, Product, Review, ShoppingCart
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -175,3 +175,25 @@ class ReviewListSerializer(serializers.ModelSerializer):
         return Review.objects.filter(
             user=request.user, product=obj, is_favorite=True
         ).exists()
+
+
+class ShoppingCartSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+    product = serializers.StringRelatedField()
+    total_amount = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ShoppingCart
+        fields = ('id', 'user', 'quantity', 'total_amount', 'product')
+
+    def get_total_amount(self, obj):
+        carts = ShoppingCart.objects.filter(user=obj.user)
+        return sum([item.quantity * item.product.price for item in carts])
+
+
+class ShoppingCartCreateSerializer(serializers.ModelSerializer):
+    product = ProductSerializer()
+
+    class Meta:
+        model = ShoppingCart
+        fields = ('user', 'quantity', 'product')

@@ -186,3 +186,19 @@ class OrderProductList(models.Model):
 
     def __str__(self):
         return f'{self.product} {self.quantity} в заказе {self.order}'
+
+
+class ShoppingCart(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, verbose_name='пользователь')
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, verbose_name='продукт')
+    quantity = models.PositiveSmallIntegerField(
+        default=1, verbose_name='количество товара')
+
+    def __str__(self):
+        return f'Корзина пользователя {self.user}'
+
+    class Meta:
+        verbose_name = 'корзина товаров'
+        verbose_name_plural = verbose_name
