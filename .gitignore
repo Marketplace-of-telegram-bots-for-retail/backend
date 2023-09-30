@@ -160,6 +160,7 @@ cython_debug/
 #.idea/
 
 docker-compose.yml
+docker-compose_copy.yml
 nginx/
 media/
 migrations/
