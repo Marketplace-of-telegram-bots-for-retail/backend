@@ -156,4 +156,4 @@ DJOSER = {
 
 PAGE_SIZE = 12
 
-CSRF_COOKIE_DOMAIN = 'botmarketplace.ru'
+CSRF_TRUSTED_ORIGINS = ['https://botmarketplace.ru']
