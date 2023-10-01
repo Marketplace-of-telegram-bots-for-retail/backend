@@ -150,7 +150,7 @@ DJOSER = {
     # 'PERMISSIONS': {
     #     'user': ['rest_framework.permissions.AllowAny'],
     # },
-    'USER_ID_FIELD': 'email',
+    # 'USER_ID_FIELD': 'email',
     'LOGIN_FIELD': 'email',
 }
 

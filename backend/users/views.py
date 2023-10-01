@@ -4,11 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from users.models import User
-from users.serializers import (
-    CustomUserCreatePasswordRetypeSerializer,
-    CustomUserCreateSerializer,
-    CustomUserSerializer,
-)
+from users.serializers import CustomUserSerializer
 
 
 class CustomUserViewSet(UserViewSet):
