@@ -12,7 +12,7 @@ from rest_framework.status import HTTP_200_OK
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from api.mixins import CRUDAPIView, ListRetrieveAPIView
-from api.permissions import AuthorCanEditAndDelete
+from api.permissions import AuthorCanEditAndDelete, IsAuthor
 from api.serializers import (
     CategorySerializer,
     ProductReadOnlySerializer,
@@ -28,11 +28,9 @@ from products.models import Category, Product, Review, ShoppingCart
 
 class CartViewSet(ReadOnlyModelViewSet):
     '''Вьюсет для отображения корзины.'''
-
+    queryset = ShoppingCart.objects.all()
+    permission_classes = (IsAuthor, )
     serializer_class = ShoppingCartSerializer
-
-    def get_queryset(self):
-        return ShoppingCart.objects.filter(user=self.request.user)
 
 
 class CategoryAPIView(ListRetrieveAPIView):
@@ -83,7 +81,8 @@ class ProductAPIView(CRUDAPIView):
                 )
         return queryset
 
-    @action(methods=['post'], detail=True)
+    @action(methods=['post'], detail=True,
+            permission_classes=[IsAuthor])
     def shopping_cart(self, request, *args, **kwargs):
         '''Добавление товара в корзину.'''
 
