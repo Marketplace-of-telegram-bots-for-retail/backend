@@ -3,8 +3,8 @@ from rest_framework import serializers
 
 from api.fields import Base64ImageField
 
-# from core.utils import checking_existence
-# from django.db.models import Avg
+from core.utils import checking_existence
+from django.db.models import Avg
 from products.models import Category, Product, Review, ShoppingCart
 
 
@@ -31,6 +31,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'image_2',
             'image_3',
             'image_4',
+            'video',
             'article',
             'price',
             'category',
@@ -67,6 +68,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             'image_2',
             'image_3',
             'image_4',
+            'video',
             'article',
             'price',
             'rating',
@@ -79,29 +81,27 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
         )
 
     def get_rating(self, object):
-        # review = Review.objects.filter(product_id=object.id)
-        # if review.exists():
-        #      return [
-        #         round(review.aggregate(Avg('rating'))['rating__avg'], 1),
-        #         review.count(),
-        #      ]
+        review = Review.objects.filter(product=object.id)
+        if review.exists():
+            return [
+                round(review.aggregate(Avg('rating'))['rating__avg'], 1),
+                review.count(),
+            ]
         return [None, None]
 
     def get_is_favorited(self, object):
-        # return checking_existence(
-        #     self.context.get('request').user,
-        #     object,
-        #     Favorite,
-        # )
-        return None
+        return checking_existence(
+            self.context.get('request').user,
+            object,
+            Review,
+        )
 
     def get_is_in_shopping_cart(self, object):
-        # return checking_existence(
-        #     self.context.get('request').user,
-        #     object,
-        #     ShoppingCart,
-        # )
-        return None
+        return checking_existence(
+            self.context.get('request').user,
+            object,
+            ShoppingCart,
+        )
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -120,7 +120,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         if request.method == 'POST':
             if Review.objects.filter(product=product, user=user).exists():
                 raise serializers.ValidationError(
-                    'Вы уже оставили свой отзыв к этому товару!'
+                    'Вы уже оставили свой отзыв к этому товару!',
                 )
         return data
 
@@ -129,7 +129,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         product = data['product']
         if Review.objects.filter(user=request.user, product=product).exists():
             raise serializers.ValidationError(
-                {'errors': 'Этот товар уже в избранном!'}
+                {'errors': 'Этот товар уже в избранном!'},
             )
         return data
 
@@ -173,7 +173,9 @@ class ReviewListSerializer(serializers.ModelSerializer):
         if not request or request.user.is_anonymous:
             return False
         return Review.objects.filter(
-            user=request.user, product=obj, is_favorite=True
+            user=request.user,
+            product=obj,
+            is_favorite=True,
         ).exists()
 
 

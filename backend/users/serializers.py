@@ -58,13 +58,13 @@ class CustomUserCreatePasswordRetypeSerializer(CustomUserCreateSerializer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['re_password'] = serializers.CharField(
-            style={'input_type': 'password'}
+            style={'input_type': 'password'},
         )
 
     default_error_messages = {
         'password_mismatch': (
             settings.CONSTANTS.messages.PASSWORD_MISMATCH_ERROR,
-        )
+        ),
     }
 
     def validate(self, attrs):

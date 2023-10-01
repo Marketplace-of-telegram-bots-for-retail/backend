@@ -4,8 +4,11 @@ from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 from core.models import TimestampedModel
-from core.utils import user_directory_path
 from users.models import User
+
+
+def user_directory_path(instance, filename):
+    return f'products/{instance.user.username}/{filename}'
 
 
 class Category(TimestampedModel):
@@ -58,6 +61,9 @@ class Product(TimestampedModel):
         upload_to=user_directory_path,
         blank=True,
         null=True,
+    )
+    video = models.TextField(
+        'ссылка на видео',
     )
     article = models.UUIDField(
         'артикул',
@@ -119,7 +125,7 @@ class Review(TimestampedModel):
                     'product',
                 ),
                 name='rating_allowed_once',
-            )
+            ),
         ]
 
     def __str__(self):
@@ -188,13 +194,21 @@ class OrderProductList(models.Model):
         return f'{self.product} {self.quantity} в заказе {self.order}'
 
 
-class ShoppingCart(models.Model):
+class ShoppingCart(TimestampedModel):
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, verbose_name='пользователь')
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='пользователь',
+    )
     product = models.ForeignKey(
-        Product, on_delete=models.CASCADE, verbose_name='продукт')
+        Product,
+        on_delete=models.CASCADE,
+        verbose_name='продукт',
+    )
     quantity = models.PositiveSmallIntegerField(
-        default=1, verbose_name='количество товара')
+        default=1,
+        verbose_name='количество товара',
+    )
 
     def __str__(self):
         return f'Корзина пользователя {self.user}'

@@ -86,7 +86,7 @@ else:
             'PASSWORD': config('POSTGRES_PASSWORD', default='1234'),
             'HOST': config('DB_HOST', default='localhost'),
             'PORT': config('DB_PORT', default=5432),
-        }
+        },
     }
 
 AUTH_PASSWORD_VALIDATORS = [

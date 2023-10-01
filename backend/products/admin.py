@@ -1,7 +1,14 @@
 from django.contrib import admin
 
 from core.admin import BaseAdmin
-from products.models import Category, Order, OrderProductList, Product, Review, ShoppingCart
+from products.models import (
+    Category,
+    Order,
+    OrderProductList,
+    Product,
+    Review,
+    ShoppingCart,
+)
 
 
 @admin.register(Category)

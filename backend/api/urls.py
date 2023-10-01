@@ -2,13 +2,12 @@ from django.urls import include, path
 from rest_framework import routers
 
 from api.views import (
+    CartViewSet,
     CategoryAPIView,
     OrderViewSet,
     ProductAPIView,
     ReviewViewSet,
 )
-
-from .views import CartViewSet
 
 router = routers.DefaultRouter()
 router.register('categories', CategoryAPIView, basename='categories')

@@ -19,25 +19,32 @@ from api.serializers import (
     ProductSerializer,
     ReviewListSerializer,
     ReviewSerializer,
+    ShoppingCartCreateSerializer,
+    ShoppingCartSerializer,
 )
 from core.paginations import Pagination
 from products.models import Category, Product, Review, ShoppingCart
 
-from .serializers import ShoppingCartCreateSerializer, ShoppingCartSerializer
-
 
 class CartViewSet(ReadOnlyModelViewSet):
     '''Вьюсет для отображения корзины.'''
-    queryset = ShoppingCart.objects.all()
+
     serializer_class = ShoppingCartSerializer
+
+    def get_queryset(self):
+        return ShoppingCart.objects.filter(user=self.request.user)
 
 
 class CategoryAPIView(ListRetrieveAPIView):
+    '''Вьюсет для модели категорий.'''
+
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
 
 
 class ProductAPIView(CRUDAPIView):
+    '''Вьюсет для модели продуктов.'''
+
     pagination_class = Pagination
     permission_classes = (AuthorCanEditAndDelete,)
     filter_backends = (
@@ -72,16 +79,19 @@ class ProductAPIView(CRUDAPIView):
             price = self.request.query_params.getlist('price')
             if price:
                 queryset = queryset.filter(
-                    Q(price__gte=int(price[0])) & Q(price__lte=int(price[1]))
+                    Q(price__gte=int(price[0])) & Q(price__lte=int(price[1])),
                 )
         return queryset
 
     @action(methods=['post'], detail=True)
     def shopping_cart(self, request, *args, **kwargs):
         '''Добавление товара в корзину.'''
+
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         cart_item, created = ShoppingCart.objects.get_or_create(
-            user=request.user, product=product)
+            user=request.user,
+            product=product,
+        )
         if not created:
             cart_item.quantity += 1
             cart_item.save()
@@ -91,14 +101,18 @@ class ProductAPIView(CRUDAPIView):
     @shopping_cart.mapping.delete
     def remove_item(self, request, *args, **kwargs):
         '''Удаление товара из корзины.'''
+
         cart_item = ShoppingCart.objects.filter(
-            user=request.user, product=kwargs.get('pk'))
+            user=request.user,
+            product=kwargs.get('pk'),
+        )
         item_id = request.query_params.get('item_id')
         if not item_id and cart_item:
             cart_item.delete()
             return Response(
                 'Весь товар удален полностью',
-                status=status.HTTP_204_NO_CONTENT)
+                status=status.HTTP_204_NO_CONTENT,
+            )
         if item_id and cart_item:
             cart_item = cart_item.filter(id=item_id)
             if cart_item:
@@ -106,17 +120,24 @@ class ProductAPIView(CRUDAPIView):
                 if cart_item.quantity == 1:
                     return Response(
                         'Должен быть хотя бы один объект данного типа',
-                        status=status.HTTP_400_BAD_REQUEST)
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
                 else:
                     cart_item.quantity -= 1
                     cart_item.save()
                 return Response(
-                    'Удален один товар', status=status.HTTP_204_NO_CONTENT)
+                    'Удален один товар',
+                    status=status.HTTP_204_NO_CONTENT,
+                )
         return Response(
-            {'error': 'Товар не найден'}, status=status.HTTP_404_NOT_FOUND)
+            {'error': 'Товар не найден'},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
 
 class ReviewViewSet(ModelViewSet):
+    '''Вьюсет для модели отзывов.'''
+
     serializer_class = ReviewSerializer
 
     def get_serializer_class(self):
@@ -125,9 +146,13 @@ class ReviewViewSet(ModelViewSet):
         return ReviewSerializer
 
     @action(
-        detail=True, methods=['POST'], permission_classes=[IsAuthenticated]
+        detail=True,
+        methods=['POST'],
+        permission_classes=[IsAuthenticated],
     )
     def favorite(self, request, pk):
+        '''Добавление товара в избранное.'''
+
         user = request.user
         product = get_object_or_404(Product, id=pk)
         model_obj = get_object_or_404(Review, user=user, product=product)
@@ -137,6 +162,8 @@ class ReviewViewSet(ModelViewSet):
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk):
+        '''Удаление товара из избранного.'''
+
         user = request.user
         product = get_object_or_404(Product, id=pk)
         model_obj = get_object_or_404(Review, user=user, product=product)
@@ -157,19 +184,31 @@ class ReviewViewSet(ModelViewSet):
 
 class OrderViewSet(ModelViewSet):
     def list(self, request, *args, **kwargs):
+        '''Получить список заказов (в разработке).'''
+
         return Response({'message': 'в разработке'})
 
     def create(self, request, *args, **kwargs):
+        '''Создать заказ (в разработке).'''
+
         return Response({'message': 'в разработке'})
 
     def retrieve(self, request, *args, **kwargs):
+        '''Получить заказ (в разработке).'''
+
         return Response({'message': 'в разработке'})
 
     def update(self, request, *args, **kwargs):
+        '''Обновить заказ (в разработке).'''
+
         return Response({'message': 'в разработке'})
 
     def partial_update(self, request, *args, **kwargs):
+        '''Обновить заказ (в разработке).'''
+
         return Response({'message': 'в разработке'})
 
     def destroy(self, request, *args, **kwargs):
+        '''Удалить заказ (в разработке).'''
+
         return Response({'message': 'в разработке'})
