@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from core.admin import BaseAdmin
-from products.models import Category, Order, OrderProductList, Product, Review
+from products.models import Category, Order, OrderProductList, Product, Review, ShoppingCart
 
 
 @admin.register(Category)
@@ -41,3 +41,8 @@ class ReviewAdmin(BaseAdmin):
 @admin.register(OrderProductList)
 class OrderProductListAdmin(BaseAdmin):
     list_display = ('pk', 'order', 'product', 'quantity')
+
+
+@admin.register(ShoppingCart)
+class ShoppingCartAdmin(BaseAdmin):
+    list_display = ('pk', 'user', 'product', 'quantity')
