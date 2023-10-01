@@ -1,10 +1,9 @@
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 
 from api.fields import Base64ImageField
-
 from core.utils import checking_existence
-from django.db.models import Avg
 from products.models import Category, Product, Review, ShoppingCart
 
 

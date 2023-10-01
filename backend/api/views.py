@@ -28,8 +28,9 @@ from products.models import Category, Product, Review, ShoppingCart
 
 class CartViewSet(ReadOnlyModelViewSet):
     '''Вьюсет для отображения корзины.'''
+
     queryset = ShoppingCart.objects.all()
-    permission_classes = (IsAuthor, )
+    permission_classes = (IsAuthor,)
     serializer_class = ShoppingCartSerializer
 
 
@@ -81,8 +82,7 @@ class ProductAPIView(CRUDAPIView):
                 )
         return queryset
 
-    @action(methods=['post'], detail=True,
-            permission_classes=[IsAuthor])
+    @action(methods=['post'], detail=True, permission_classes=[IsAuthor])
     def shopping_cart(self, request, *args, **kwargs):
         '''Добавление товара в корзину.'''
 
