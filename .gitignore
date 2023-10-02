@@ -163,4 +163,4 @@ cython_debug/
 # docker-compose_copy.yml
 # nginx/
 media/
-migrations/
+# migrations/

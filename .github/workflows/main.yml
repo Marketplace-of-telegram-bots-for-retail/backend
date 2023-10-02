@@ -13,9 +13,9 @@ jobs:
   #     postgres:
   #       image: postgres:14
   #       env:
-  #         POSTGRES_USER: django_user
-  #         POSTGRES_PASSWORD: django_password
-  #         POSTGRES_DB: django_db
+  #         POSTGRES_USER: postgres_user
+  #         POSTGRES_PASSWORD: postgres_password
+  #         POSTGRES_DB: postgres
   #       ports:
   #         - 5432:5432
   #       options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
@@ -36,9 +36,9 @@ jobs:
 
   #   - name: Test with flake8 tests
   #     env:
-  #       POSTGRES_USER: django_user
-  #       POSTGRES_PASSWORD: django_password
-  #       POSTGRES_DB: django_db
+  #       POSTGRES_USER: postgres_user
+  #       POSTGRES_PASSWORD: postgres_password
+  #       POSTGRES_DB: postgres
   #       DB_HOST: localhost
   #       DB_PORT: 5432
   #       SECRET_KEY: some-test-key-not-good-for-prod
@@ -133,6 +133,7 @@ jobs:
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           source: "docker-compose.yml"
           target: "marketplace"
@@ -142,6 +143,7 @@ jobs:
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USER }}
+          key: ${{ secrets.SSH_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             cd marketplace

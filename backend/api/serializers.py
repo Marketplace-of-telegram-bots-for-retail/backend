@@ -1,5 +1,6 @@
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.fields import Base64ImageField
@@ -79,6 +80,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             'modified',
         )
 
+    @extend_schema_field({'example': [4.5, 2]})
     def get_rating(self, object):
         review = Review.objects.filter(product=object.id)
         if review.exists():
@@ -88,6 +90,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             ]
         return [None, None]
 
+    @extend_schema_field({'type': 'boolean', 'example': False})
     def get_is_favorited(self, object):
         return checking_existence(
             self.context.get('request').user,
@@ -95,6 +98,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             Review,
         )
 
+    @extend_schema_field({'type': 'boolean', 'example': False})
     def get_is_in_shopping_cart(self, object):
         return checking_existence(
             self.context.get('request').user,
