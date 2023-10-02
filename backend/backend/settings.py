@@ -82,9 +82,9 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': config('POSTGRES_DB', default='django'),
-            'USER': config('POSTGRES_USER', default='django'),
-            'PASSWORD': config('POSTGRES_PASSWORD', default='1234'),
-            'HOST': config('DB_HOST', default='localhost'),
+            'USER': config('POSTGRES_USER', default='django_user'),
+            'PASSWORD': config('POSTGRES_PASSWORD', default='django_password'),
+            'HOST': config('DB_HOST', default='postgres'),
             'PORT': config('DB_PORT', default=5432),
         },
     }
@@ -155,3 +155,5 @@ DJOSER = {
 }
 
 PAGE_SIZE = 12
+
+CSRF_TRUSTED_ORIGINS = ['https://botmarketplace.ru', 'https://80.87.109.115']
