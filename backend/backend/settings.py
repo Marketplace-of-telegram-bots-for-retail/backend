@@ -132,6 +132,17 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Список эндпоинтов API',
+    'DESCRIPTION': (
+        'Документация API. Ссылка на пояснение к документации: '
+        'https://docs.google.com/document/d/1UYkoB6dfhXv4imFhy47Vkhyvi7T7azrro9MyQfczb8Y/edit?usp=sharing'
+    ),
+    'VERSION': '0.0.1',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+}
+
 DEBUG_TOOLBAR_CONFIG = {
     'SHOW_TOOLBAR_CALLBACK': lambda request: True,
 }
