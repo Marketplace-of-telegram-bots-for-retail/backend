@@ -177,7 +177,7 @@ class ReviewViewSet(ModelViewSet):
     def get_queryset(self):
         product_id = self.kwargs.get('product_id')
         product = get_object_or_404(Product, pk=product_id)
-        return product.reviews.all()
+        return Review.objects.filter(product=product)
 
     def perform_create(self, serializer):
         product_id = self.kwargs.get('product_id')
