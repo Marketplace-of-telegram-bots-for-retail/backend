@@ -6,6 +6,7 @@ from rest_framework import serializers
 from api.fields import Base64ImageField
 from core.utils import checking_existence
 from products.models import Category, Product, Review, ShoppingCart
+from users.serializers import CustomUserSerializer
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -141,16 +142,6 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Выберите значение от 1 до 5')
         return value
 
-    def create(self, validated_data):
-        user = self.context.get('request').user
-        review = Review.objects.create(user=user, **validated_data)
-        return review
-
-    def to_representation(self, instance):
-        request = self.context.get('request')
-        context = {'request': request}
-        return ReviewListSerializer(instance, context=context).data
-
     class Meta:
         model = Review
         exclude = [
@@ -159,7 +150,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class ReviewListSerializer(serializers.ModelSerializer):
-    # user = CustomUserSerializer(read_only=True)
+    user = CustomUserSerializer(read_only=True)
     products = serializers.SerializerMethodField(read_only=True)
     is_favorite = serializers.SerializerMethodField(read_only=True)
 
@@ -180,6 +171,11 @@ class ReviewListSerializer(serializers.ModelSerializer):
             product=obj,
             is_favorite=True,
         ).exists()
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        context = {'request': request}
+        return ReviewSerializer(instance, context=context).data
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):

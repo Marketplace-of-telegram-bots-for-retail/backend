@@ -8,7 +8,7 @@ from users.models import User
 
 
 def user_directory_path(instance, filename):
-    return f'products/{instance.user.username}/{filename}'
+    return f'products/{instance.user.id}/{filename}'
 
 
 class Category(TimestampedModel):
