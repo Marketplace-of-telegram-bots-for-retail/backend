@@ -142,11 +142,6 @@ class ReviewSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError('Выберите значение от 1 до 5')
         return value
 
-    def to_representation(self, instance):
-        request = self.context.get('request')
-        context = {'request': request}
-        return ReviewListSerializer(instance, context=context).data
-
     class Meta:
         model = Review
         exclude = [
@@ -176,6 +171,11 @@ class ReviewListSerializer(serializers.ModelSerializer):
             product=obj,
             is_favorite=True,
         ).exists()
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        context = {'request': request}
+        return ReviewSerializer(instance, context=context).data
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
