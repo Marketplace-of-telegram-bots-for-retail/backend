@@ -109,10 +109,6 @@ class Review(TimestampedModel):
         max_length=500,
         blank=True,
     )
-    is_favorite = models.BooleanField(
-        'избранное',
-        default=False,
-    )
 
     class Meta:
         verbose_name = 'отзыв'
@@ -216,3 +212,28 @@ class ShoppingCart(TimestampedModel):
     class Meta:
         verbose_name = 'корзина товаров'
         verbose_name_plural = verbose_name
+
+
+class Favorite(TimestampedModel):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='user_favorite',
+        verbose_name='пользователь',
+    )
+    product = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='product_favorite',
+        verbose_name='продукт',
+    )
+
+    class Meta:
+        verbose_name = 'избранное'
+        verbose_name_plural = 'избранные'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'product'],
+                name='unique favorite',
+            ),
+        ]
