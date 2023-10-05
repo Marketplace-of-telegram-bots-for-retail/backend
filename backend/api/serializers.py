@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from api.fields import Base64ImageField
 from core.utils import checking_existence
-from products.models import Category, Product, Review, ShoppingCart
+from products.models import Category, Product, Review, ShoppingCart, Favorite
 from users.serializers import CustomUserSerializer
 
 
@@ -96,7 +96,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
         return checking_existence(
             self.context.get('request').user,
             object,
-            Review,
+            Favorite,
         )
 
     @extend_schema_field({'type': 'boolean', 'example': False})
@@ -152,7 +152,6 @@ class ReviewSerializer(serializers.ModelSerializer):
 class ReviewListSerializer(serializers.ModelSerializer):
     user = CustomUserSerializer(read_only=True)
     products = serializers.SerializerMethodField(read_only=True)
-    is_favorite = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Review
@@ -161,16 +160,6 @@ class ReviewListSerializer(serializers.ModelSerializer):
     def get_reviews(self, obj):
         queryset = Review.objects.filter(product=obj)
         return ReviewSerializer(queryset, many=True).data
-
-    def get_is_favorited(self, obj):
-        request = self.context.get('request')
-        if not request or request.user.is_anonymous:
-            return False
-        return Review.objects.filter(
-            user=request.user,
-            product=obj,
-            is_favorite=True,
-        ).exists()
 
     def to_representation(self, instance):
         request = self.context.get('request')
@@ -198,3 +187,23 @@ class ShoppingCartCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShoppingCart
         fields = ('user', 'quantity', 'product')
+
+
+class FavoriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorite
+        fields = ('user', 'product')
+
+    def validate(self, data):
+        request = self.context.get('request')
+        product = data['product']
+        if Favorite.objects.filter(user=request.user, product=product).exists():
+            raise serializers.ValidationError(
+                {'errors': 'Этот товар уже в избранном!'}
+            )
+        return data
+
+    def to_representation(self, instance):
+        request = self.context.get('request')
+        context = {'request': request}
+        return ProductSerializer(instance.product, context=context).data
