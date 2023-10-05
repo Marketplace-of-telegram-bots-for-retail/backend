@@ -17,15 +17,16 @@ from api.mixins import CRUDAPIView, ListRetrieveAPIView
 from api.permissions import AuthorCanEditAndDelete, IsAuthor
 from api.serializers import (
     CategorySerializer,
+    FavoriteSerializer,
     ProductReadOnlySerializer,
     ProductSerializer,
     ReviewListSerializer,
     ReviewSerializer,
     ShoppingCartCreateSerializer,
-    ShoppingCartSerializer, FavoriteSerializer,
+    ShoppingCartSerializer,
 )
 from core.paginations import Pagination
-from products.models import Category, Product, Review, ShoppingCart, Favorite
+from products.models import Category, Favorite, Product, Review, ShoppingCart
 
 
 class CartViewSet(ReadOnlyModelViewSet):
@@ -73,17 +74,23 @@ class ProductAPIView(CRUDAPIView):
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
-        detail=True, methods=['POST'], permission_classes=[IsAuthenticated]
+        detail=True,
+        methods=['POST'],
+        permission_classes=[IsAuthenticated],
     )
     def favorite(self, request, pk):
         return self.post_method_for_actions(
-            request=request, pk=pk, serializers=FavoriteSerializer
+            request=request,
+            pk=pk,
+            serializers=FavoriteSerializer,
         )
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk):
         return self.delete_method_for_actions(
-            request=request, pk=pk, model=Favorite
+            request=request,
+            pk=pk,
+            model=Favorite,
         )
 
     def perform_create(self, serializer):

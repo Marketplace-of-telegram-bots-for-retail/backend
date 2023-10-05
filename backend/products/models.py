@@ -233,6 +233,7 @@ class Favorite(TimestampedModel):
         verbose_name_plural = 'избранные'
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'product'], name='unique favorite'
-            )
+                fields=['user', 'product'],
+                name='unique favorite',
+            ),
         ]

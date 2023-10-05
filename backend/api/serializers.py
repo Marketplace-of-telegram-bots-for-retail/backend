@@ -5,7 +5,7 @@ from rest_framework import serializers
 
 from api.fields import Base64ImageField
 from core.utils import checking_existence
-from products.models import Category, Product, Review, ShoppingCart, Favorite
+from products.models import Category, Favorite, Product, Review, ShoppingCart
 from users.serializers import CustomUserSerializer
 
 
@@ -197,9 +197,12 @@ class FavoriteSerializer(serializers.ModelSerializer):
     def validate(self, data):
         request = self.context.get('request')
         product = data['product']
-        if Favorite.objects.filter(user=request.user, product=product).exists():
+        if Favorite.objects.filter(
+            user=request.user,
+            product=product,
+        ).exists():
             raise serializers.ValidationError(
-                {'errors': 'Этот товар уже в избранном!'}
+                {'errors': 'Этот товар уже в избранном!'},
             )
         return data
 

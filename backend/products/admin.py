@@ -3,11 +3,12 @@ from django.contrib import admin
 from core.admin import BaseAdmin
 from products.models import (
     Category,
+    Favorite,
     Order,
     OrderProductList,
     Product,
     Review,
-    ShoppingCart, Favorite,
+    ShoppingCart,
 )
 
 
