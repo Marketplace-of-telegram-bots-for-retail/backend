@@ -7,7 +7,7 @@ from products.models import (
     OrderProductList,
     Product,
     Review,
-    ShoppingCart,
+    ShoppingCart, Favorite,
 )
 
 
@@ -42,7 +42,7 @@ class OrderAdmin(BaseAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(BaseAdmin):
-    list_display = ('pk', 'user', 'product', 'rating', 'text', 'is_favorite')
+    list_display = ('pk', 'user', 'product', 'rating', 'text')
 
 
 @admin.register(OrderProductList)
@@ -53,3 +53,8 @@ class OrderProductListAdmin(BaseAdmin):
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(BaseAdmin):
     list_display = ('pk', 'user', 'product', 'quantity')
+
+
+@admin.register(Favorite)
+class FavoriteAdmin(BaseAdmin):
+    list_display = ('pk', 'user', 'product')

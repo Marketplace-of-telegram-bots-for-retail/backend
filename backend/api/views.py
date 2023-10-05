@@ -11,7 +11,6 @@ from rest_framework.permissions import (
     IsAuthenticatedOrReadOnly,
 )
 from rest_framework.response import Response
-from rest_framework.status import HTTP_200_OK
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from api.mixins import CRUDAPIView, ListRetrieveAPIView
@@ -23,10 +22,10 @@ from api.serializers import (
     ReviewListSerializer,
     ReviewSerializer,
     ShoppingCartCreateSerializer,
-    ShoppingCartSerializer,
+    ShoppingCartSerializer, FavoriteSerializer,
 )
 from core.paginations import Pagination
-from products.models import Category, Product, Review, ShoppingCart
+from products.models import Category, Product, Review, ShoppingCart, Favorite
 
 
 class CartViewSet(ReadOnlyModelViewSet):
@@ -56,6 +55,36 @@ class ProductAPIView(CRUDAPIView):
     )
     search_fields = ('^name',)
     ordering_fields = ('created', 'price')
+
+    @staticmethod
+    def post_method_for_actions(request, pk, serializers):
+        data = {'user': request.user.id, 'product': pk}
+        serializer = serializers(data=data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @staticmethod
+    def delete_method_for_actions(request, pk, model):
+        user = request.user
+        product = get_object_or_404(Product, id=pk)
+        model_obj = get_object_or_404(model, user=user, product=product)
+        model_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=True, methods=['POST'], permission_classes=[IsAuthenticated]
+    )
+    def favorite(self, request, pk):
+        return self.post_method_for_actions(
+            request=request, pk=pk, serializers=FavoriteSerializer
+        )
+
+    @favorite.mapping.delete
+    def delete_favorite(self, request, pk):
+        return self.delete_method_for_actions(
+            request=request, pk=pk, model=Favorite
+        )
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -147,32 +176,6 @@ class ReviewViewSet(ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return ReviewListSerializer
         return ReviewSerializer
-
-    @action(
-        detail=True,
-        methods=['POST'],
-        permission_classes=[IsAuthenticated],
-    )
-    def favorite(self, request, pk):
-        '''Добавление товара в избранное.'''
-
-        user = request.user
-        product = get_object_or_404(Product, id=pk)
-        model_obj = get_object_or_404(Review, user=user, product=product)
-        model_obj.is_favorite = True
-        model_obj.save()
-        return Response(status=HTTP_200_OK)
-
-    @favorite.mapping.delete
-    def delete_favorite(self, request, pk):
-        '''Удаление товара из избранного.'''
-
-        user = request.user
-        product = get_object_or_404(Product, id=pk)
-        model_obj = get_object_or_404(Review, user=user, product=product)
-        model_obj.is_favorite = False
-        model_obj.save()
-        return Response(status=HTTP_200_OK)
 
     def get_queryset(self):
         product_id = self.kwargs.get('product_id')
