@@ -33,8 +33,12 @@ class CartViewSet(ReadOnlyModelViewSet):
     '''Вьюсет для отображения корзины.'''
 
     queryset = ShoppingCart.objects.all()
-    permission_classes = (IsAuthor,)
+    permission_classes = (IsAuthor, IsAuthenticated)
     serializer_class = ShoppingCartSerializer
+
+    def get_queryset(self):
+        carts = ShoppingCart.objects.filter(user=self.request.user)
+        return carts   
 
 
 class CategoryAPIView(ListRetrieveAPIView):
