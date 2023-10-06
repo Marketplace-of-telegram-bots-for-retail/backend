@@ -32,9 +32,11 @@ from products.models import Category, Favorite, Product, Review, ShoppingCart
 class CartViewSet(ReadOnlyModelViewSet):
     '''Вьюсет для отображения корзины.'''
 
-    queryset = ShoppingCart.objects.all()
-    permission_classes = (IsAuthor,)
+    permission_classes = (IsAuthor, IsAuthenticated)
     serializer_class = ShoppingCartSerializer
+
+    def get_queryset(self):
+        return ShoppingCart.objects.filter(user=self.request.user)
 
 
 class CategoryAPIView(ListRetrieveAPIView):
