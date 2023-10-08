@@ -143,10 +143,14 @@ class ProductAPIView(CRUDAPIView):
     def remove_item(self, request, *args, **kwargs):
         '''Удаление товара из корзины.'''
 
-        cart_item = ShoppingCart.objects.filter(
-            user=request.user,
-            product=kwargs.get('pk'),
-        )
+        if request.user.is_authenticated:
+            cart_item = ShoppingCart.objects.filter(
+                user=request.user,
+                product=kwargs.get('pk'),
+            )
+        else:
+            return Response(
+                'Вы не авторизованы', status=status.HTTP_400_BAD_REQUEST)
         item_id = request.query_params.get('item_id')
         if not item_id and cart_item:
             cart_item.delete()
