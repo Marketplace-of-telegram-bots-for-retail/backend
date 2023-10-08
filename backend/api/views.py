@@ -150,7 +150,9 @@ class ProductAPIView(CRUDAPIView):
             )
         else:
             return Response(
-                'Вы не авторизованы', status=status.HTTP_400_BAD_REQUEST)
+                'Вы не авторизованы',
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         item_id = request.query_params.get('item_id')
         if not item_id and cart_item:
             cart_item.delete()
