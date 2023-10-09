@@ -32,12 +32,14 @@ INSTALLED_APPS = [
     'djoser',
     'drf_spectacular',
     'debug_toolbar',
+    'corsheaders',
 ]
 # fmt: on
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -167,4 +169,14 @@ DJOSER = {
 
 PAGE_SIZE = 12
 
-CSRF_TRUSTED_ORIGINS = ['https://botmarketplace.ru', 'https://80.87.109.115']
+CSRF_TRUSTED_ORIGINS = [
+    'https://botmarketplace.ru',
+    'https://80.87.109.115',
+    'http://localhost:3000',
+    'https://marketplace-of-telegram-bots-for-retail.github.io',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'https://marketplace-of-telegram-bots-for-retail.github.io',
+]
