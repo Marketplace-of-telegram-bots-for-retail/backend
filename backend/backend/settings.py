@@ -167,4 +167,8 @@ DJOSER = {
 
 PAGE_SIZE = 12
 
-CSRF_TRUSTED_ORIGINS = ['https://botmarketplace.ru', 'https://80.87.109.115']
+CSRF_TRUSTED_ORIGINS = [
+    'https://botmarketplace.ru',
+    'https://80.87.109.115',
+    'http://localhost:3000/',
+]
