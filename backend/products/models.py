@@ -70,7 +70,10 @@ class Product(TimestampedModel):
         default=uuid.uuid4,
         editable=False,
     )
-    price = models.IntegerField('стоимость')
+    price = models.PositiveIntegerField(
+        'стоимость',
+        validators=[MinValueValidator(1)],
+    )
     category = models.ManyToManyField(
         Category,
         verbose_name='список категорий',
