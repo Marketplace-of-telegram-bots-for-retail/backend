@@ -3,6 +3,11 @@ from operator import or_
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+)
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
@@ -29,8 +34,23 @@ from core.paginations import Pagination
 from products.models import Category, Favorite, Product, Review, ShoppingCart
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary='Получить все данные корзины',
+        description=(
+            'Возвращает список ботов в корзине для текущего пользователя, где '
+            'у каждого объекта JSON в поле `total_amount` хранится итоговая '
+            'сумма, т.е. для вывода `Итого` можно взять значение '
+            '`total_amount` из любого полученного объекта JSON.'
+        ),
+    ),
+    retrieve=extend_schema(
+        summary='Получить данные конкретной записи в корзине',
+        description=('Возвращает данные конкретной записи в корзине.'),
+    ),
+)
 class CartViewSet(ReadOnlyModelViewSet):
-    '''Вьюсет для отображения корзины.'''
+    '''Корзина.'''
 
     permission_classes = (IsAuthor, IsAuthenticated)
     serializer_class = ShoppingCartSerializer
@@ -39,16 +59,102 @@ class CartViewSet(ReadOnlyModelViewSet):
         return ShoppingCart.objects.filter(user=self.request.user)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary='Получить список категорий',
+        description=('Возвращает список категорий.'),
+    ),
+    retrieve=extend_schema(
+        summary='Получить данные конкретной категории',
+        description=('Возвращает данные конкретной категории.'),
+    ),
+)
 class CategoryAPIView(ListRetrieveAPIView):
-    '''Вьюсет для модели категорий.'''
+    '''Категории.'''
 
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary='Получить список товаров',
+        description=('Возвращает список товаров.'),
+        parameters=[
+            OpenApiParameter(
+                name='category',
+                description=(
+                    'Фильтрация по категориям. Передаём именно название '
+                    'категории.'
+                ),
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name='search',
+                description=(
+                    'Поиск по начальному вхождению, регистр учитывается.'
+                ),
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name='price',
+                description=(
+                    'Для фильтрации по цене передаём именно два параметра '
+                    '`price`. Число в первом параметре `price` '
+                    'рассматривается как `от`, а во втором параметре - `до`.'
+                ),
+                required=False,
+                type=int,
+            ),
+            OpenApiParameter(
+                name='ordering',
+                description=(
+                    'Сортировка. `ordering=-created` - `Сначала новые`. При '
+                    '`GET` запросе без этого параметра данные отсортированы '
+                    '`Сначала новые`. `ordering=created` - `Сначала старые`.'
+                    ' `ordering=price` - `Сначала дешевые`. `ordering=-price`'
+                    ' - `Сначала дорогие`.'
+                ),
+                required=False,
+                type=str,
+            ),
+            OpenApiParameter(
+                name='is_favorited',
+                description=(
+                    'Если `is_favorited=True`, то выводятся все товары, '
+                    'которые текущий пользователь добавил в избранное.'
+                ),
+                required=False,
+                type=str,
+            ),
+        ],
+    ),
+    create=extend_schema(
+        summary='Создать товар',
+        description=('Создать товар.'),
+    ),
+    retrieve=extend_schema(
+        summary='Получить данные конкретного товара',
+        description=('Возвращает данные конкретного товара.'),
+    ),
+    update=extend_schema(
+        summary='Обновить данные товара целиком',
+        description=('Обновить данные товара целиком.'),
+    ),
+    partial_update=extend_schema(
+        summary='Обновить данные товара частично',
+        description=('Обновить данные товара частично.'),
+    ),
+    destroy=extend_schema(
+        summary='Удалить товар',
+        description=('Удалить товар.'),
+    ),
+)
 class ProductAPIView(CRUDAPIView):
-    '''Вьюсет для модели продуктов.'''
+    '''Продукты.'''
 
     pagination_class = Pagination
     permission_classes = (AuthorCanEditAndDelete,)
@@ -81,6 +187,8 @@ class ProductAPIView(CRUDAPIView):
         permission_classes=[IsAuthenticated],
     )
     def favorite(self, request, pk):
+        '''Добавить товар в избранное.'''
+
         return self.post_method_for_actions(
             request=request,
             pk=pk,
@@ -89,6 +197,8 @@ class ProductAPIView(CRUDAPIView):
 
     @favorite.mapping.delete
     def delete_favorite(self, request, pk):
+        '''Удалить товар из избранного.'''
+
         return self.delete_method_for_actions(
             request=request,
             pk=pk,
@@ -106,6 +216,11 @@ class ProductAPIView(CRUDAPIView):
     def get_queryset(self):
         queryset = Product.objects.all()
         if self.action in ('list', 'retrieve'):
+            is_favorited = self.request.query_params.get('is_favorited')
+            if is_favorited == 'True' and self.request.user.is_authenticated:
+                queryset = queryset.filter(
+                    product_favorite__user=self.request.user,
+                )
             categories = self.request.query_params.getlist('category')
             if categories:
                 queryset = queryset.filter(
@@ -126,7 +241,7 @@ class ProductAPIView(CRUDAPIView):
 
     @action(methods=['post'], detail=True, permission_classes=[IsAuthor])
     def shopping_cart(self, request, *args, **kwargs):
-        '''Добавление товара в корзину.'''
+        '''Добавить товар в корзину.'''
 
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         cart_item, created = ShoppingCart.objects.get_or_create(
@@ -141,7 +256,7 @@ class ProductAPIView(CRUDAPIView):
 
     @shopping_cart.mapping.delete
     def remove_item(self, request, *args, **kwargs):
-        '''Удаление товара из корзины.'''
+        '''Удалить товар из корзины.'''
 
         if request.user.is_authenticated:
             cart_item = ShoppingCart.objects.filter(
@@ -150,7 +265,9 @@ class ProductAPIView(CRUDAPIView):
             )
         else:
             return Response(
-                'Вы не авторизованы', status=status.HTTP_400_BAD_REQUEST)
+                'Вы не авторизованы',
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         item_id = request.query_params.get('item_id')
         if not item_id and cart_item:
             cart_item.delete()
@@ -180,8 +297,34 @@ class ProductAPIView(CRUDAPIView):
         )
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary='Получить список отзывов',
+        description=('Возвращает список отзывов.'),
+    ),
+    create=extend_schema(
+        summary='Создать отзыв',
+        description=('Создать отзыв.'),
+    ),
+    retrieve=extend_schema(
+        summary='Получить данные конкретного отзыва',
+        description=('Возвращает данные конкретного отзыва.'),
+    ),
+    update=extend_schema(
+        summary='Обновить данные отзыва целиком',
+        description=('Обновить данные отзыва целиком.'),
+    ),
+    partial_update=extend_schema(
+        summary='Обновить данные отзыва частично',
+        description=('Обновить данные отзыва частично.'),
+    ),
+    destroy=extend_schema(
+        summary='Удалить отзыв',
+        description=('Удалить отзыв.'),
+    ),
+)
 class ReviewViewSet(ModelViewSet):
-    '''Вьюсет для модели отзывов.'''
+    '''Отзывы.'''
 
     serializer_class = ReviewSerializer
 
@@ -201,7 +344,35 @@ class ReviewViewSet(ModelViewSet):
         serializer.save(user=self.request.user, product=product)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary='Получить список заказов (в разработке)',
+        description=('Не работает.'),
+    ),
+    create=extend_schema(
+        summary='Создать заказ (в разработке)',
+        description=('Не работает.'),
+    ),
+    retrieve=extend_schema(
+        summary='Получить данные конкретного заказа (в разработке)',
+        description=('Не работает.'),
+    ),
+    update=extend_schema(
+        summary='Обновить данные заказа целиком (в разработке)',
+        description=('Не работает.'),
+    ),
+    partial_update=extend_schema(
+        summary='Обновить данные заказа частично (в разработке)',
+        description=('Не работает.'),
+    ),
+    destroy=extend_schema(
+        summary='Удалить заказ (в разработке)',
+        description=('Не работает.'),
+    ),
+)
 class OrderViewSet(ModelViewSet):
+    '''Заказы.'''
+
     def list(self, request, *args, **kwargs):
         '''Получить список заказов (в разработке).'''
 
@@ -213,17 +384,17 @@ class OrderViewSet(ModelViewSet):
         return Response({'message': 'в разработке'})
 
     def retrieve(self, request, *args, **kwargs):
-        '''Получить заказ (в разработке).'''
+        '''Получить данные конкретного заказа (в разработке).'''
 
         return Response({'message': 'в разработке'})
 
     def update(self, request, *args, **kwargs):
-        '''Обновить заказ (в разработке).'''
+        '''Обновить данные заказа целиком (в разработке).'''
 
         return Response({'message': 'в разработке'})
 
     def partial_update(self, request, *args, **kwargs):
-        '''Обновить заказ (в разработке).'''
+        '''Обновить данные заказа частично (в разработке).'''
 
         return Response({'message': 'в разработке'})
 
