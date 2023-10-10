@@ -64,6 +64,8 @@ class Product(TimestampedModel):
     )
     video = models.TextField(
         'ссылка на видео',
+        blank=True,
+        null=True,
     )
     article = models.UUIDField(
         'артикул',

@@ -85,11 +85,10 @@ class CategoryAPIView(ListRetrieveAPIView):
             OpenApiParameter(
                 name='category',
                 description=(
-                    'Фильтрация по категориям. Передаём именно название '
-                    'категории.'
+                    'Фильтрация по категориям. Передаём `id` категории.'
                 ),
                 required=False,
-                type=str,
+                type=int,
             ),
             OpenApiParameter(
                 name='search',
@@ -223,15 +222,19 @@ class ProductAPIView(CRUDAPIView):
                 )
             categories = self.request.query_params.getlist('category')
             if categories:
-                queryset = queryset.filter(
-                    reduce(
-                        or_,
-                        [
-                            Q(category__name=category)
-                            for category in categories
-                        ],
-                    ),
-                ).distinct()
+                try:
+                    queryset = queryset.filter(
+                        reduce(
+                            or_,
+                            [
+                                Q(category__id=category)
+                                for category in categories
+                                if category.isdigit()
+                            ],
+                        ),
+                    ).distinct()
+                except TypeError as error:
+                    print(error)
             price = self.request.query_params.getlist('price')
             if price:
                 queryset = queryset.filter(
