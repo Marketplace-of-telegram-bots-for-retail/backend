@@ -96,7 +96,7 @@ class Migration(migrations.Migration):
                     "quantity",
                     models.IntegerField(
                         validators=[
-                            django.core.validators.MinValueValidator(1)
+                            django.core.validators.MinValueValidator(1),
                         ],
                         verbose_name="количество продуктов",
                     ),
@@ -132,7 +132,8 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        max_length=200, verbose_name="название бота"
+                        max_length=200,
+                        verbose_name="название бота",
                     ),
                 ),
                 (
@@ -227,13 +228,16 @@ class Migration(migrations.Migration):
                 (
                     "text",
                     models.TextField(
-                        blank=True, max_length=500, verbose_name="текст отзыва"
+                        blank=True,
+                        max_length=500,
+                        verbose_name="текст отзыва",
                     ),
                 ),
                 (
                     "is_favorite",
                     models.BooleanField(
-                        default=False, verbose_name="избранное"
+                        default=False,
+                        verbose_name="избранное",
                     ),
                 ),
             ],
@@ -267,7 +271,8 @@ class Migration(migrations.Migration):
                 (
                     "quantity",
                     models.PositiveSmallIntegerField(
-                        default=1, verbose_name="количество товара"
+                        default=1,
+                        verbose_name="количество товара",
                     ),
                 ),
                 (
