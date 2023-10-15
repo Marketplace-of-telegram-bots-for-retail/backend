@@ -1,5 +1,5 @@
-# from django.conf import settings
-# from django.core.exceptions import ObjectDoesNotExist
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -26,11 +26,11 @@ class Category(TimestampedModel):
 
 
 class Product(TimestampedModel):
-    # def get_article():
-    #     try:
-    #         return Product.objects.latest('id').article + 1
-    #     except ObjectDoesNotExist:
-    #         return settings.FIRST_ARTICLE
+    def get_article():
+        try:
+            return Product.objects.latest('id').article + 1
+        except ObjectDoesNotExist:
+            return settings.FIRST_ARTICLE
 
     user = models.ForeignKey(
         User,
