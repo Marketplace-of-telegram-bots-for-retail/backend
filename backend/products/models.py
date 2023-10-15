@@ -73,7 +73,7 @@ class Product(TimestampedModel):
         blank=True,
         null=True,
     )
-    article = models.PositiveIntegerField(
+    article = models.UUIDField(
         'артикул',
         # default=get_article,
         editable=True,
