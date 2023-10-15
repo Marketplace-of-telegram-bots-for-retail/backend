@@ -3,17 +3,17 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("products", "0005_alter_product_video"),
+        ("products", "0007_remove_product_article"),
     ]
 
     operations = [
-        migrations.AlterField(
+        migrations.AddField(
             model_name="product",
             name="article",
-            field=models.UUIDField(
-                blank=True,
-                null=True,
+            field=models.PositiveIntegerField(
+                default=0,
                 verbose_name="артикул",
             ),
+            preserve_default=False,
         ),
     ]
