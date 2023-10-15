@@ -26,7 +26,7 @@ class ProductAdmin(BaseAdmin):
         'user',
         'name',
         'description',
-        # 'article',
+        'article',
         'price',
         'is_active',
         'created',

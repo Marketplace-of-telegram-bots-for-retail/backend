@@ -1,19 +1,22 @@
 from django.db import migrations, models
 
+import products.models
+
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("products", "0007_remove_product_article"),
+        ("products", "0008_product_article"),
     ]
 
     operations = [
-        migrations.AddField(
+        migrations.AlterField(
             model_name="product",
             name="article",
             field=models.PositiveIntegerField(
-                default=0,
+                default=products.models.Product.get_article,
+                editable=False,
+                unique=True,
                 verbose_name="артикул",
             ),
-            preserve_default=False,
         ),
     ]
