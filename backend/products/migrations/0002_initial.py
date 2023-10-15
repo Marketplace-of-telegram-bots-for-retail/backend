@@ -103,13 +103,15 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="review",
             constraint=models.UniqueConstraint(
-                fields=("user", "product"), name="rating_allowed_once"
+                fields=("user", "product"),
+                name="rating_allowed_once",
             ),
         ),
         migrations.AddConstraint(
             model_name="orderproductlist",
             constraint=models.UniqueConstraint(
-                fields=("order", "product"), name="unique_order"
+                fields=("order", "product"),
+                name="unique_order",
             ),
         ),
     ]

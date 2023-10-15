@@ -1,5 +1,5 @@
-import uuid
-
+from django.conf import settings
+from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -26,6 +26,12 @@ class Category(TimestampedModel):
 
 
 class Product(TimestampedModel):
+    def get_article():
+        try:
+            return Product.objects.latest('id').article + 1
+        except ObjectDoesNotExist:
+            return settings.FIRST_ARTICLE
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -67,10 +73,11 @@ class Product(TimestampedModel):
         blank=True,
         null=True,
     )
-    article = models.UUIDField(
+    article = models.PositiveIntegerField(
         'артикул',
-        default=uuid.uuid4,
+        default=get_article,
         editable=False,
+        unique=True,
     )
     price = models.PositiveIntegerField(
         'стоимость',

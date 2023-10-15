@@ -167,7 +167,9 @@ DJOSER = {
     'LOGIN_FIELD': 'email',
 }
 
-PAGE_SIZE = 12
+PAGE_SIZE = 9
+
+FIRST_ARTICLE = 100000
 
 CSRF_TRUSTED_ORIGINS = [
     'https://botmarketplace.ru',
