@@ -73,13 +73,6 @@ class Product(TimestampedModel):
         blank=True,
         null=True,
     )
-    article = models.PositiveIntegerField(
-        'артикул',
-        default=get_article,
-        editable=True,
-        blank=True,
-        null=True,
-    )
     price = models.PositiveIntegerField(
         'стоимость',
         validators=[MinValueValidator(1)],
