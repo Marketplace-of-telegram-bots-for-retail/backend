@@ -116,7 +116,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     )
     product = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
-    def validate_review(self, data):
+    def validate(self, data):
         request = self.context['request']
         user = request.user
         product_id = self.context['view'].kwargs.get('product_id')
@@ -124,23 +124,9 @@ class ReviewSerializer(serializers.ModelSerializer):
         if request.method == 'POST':
             if Review.objects.filter(product=product, user=user).exists():
                 raise serializers.ValidationError(
-                    'Вы уже оставили свой отзыв к этому товару!',
+                    {'errors': ' Вы уже оставили свой отзыв к этому товару!'}
                 )
         return data
-
-    def validate_favorite(self, data):
-        request = self.context.get('request')
-        product = data['product']
-        if Review.objects.filter(user=request.user, product=product).exists():
-            raise serializers.ValidationError(
-                {'errors': 'Этот товар уже в избранном!'},
-            )
-        return data
-
-    def validate_score(self, value):
-        if not 1 <= value <= 5:
-            raise serializers.ValidationError('Выберите значение от 1 до 5')
-        return value
 
     class Meta:
         model = Review

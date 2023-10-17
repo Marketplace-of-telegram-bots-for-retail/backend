@@ -1,3 +1,5 @@
+from importlib.resources._common import _
+
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -113,7 +115,7 @@ class Review(TimestampedModel):
     )
     rating = models.PositiveSmallIntegerField(
         'рейтинг',
-        default=0,
+        blank=False,
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
     text = models.TextField(
