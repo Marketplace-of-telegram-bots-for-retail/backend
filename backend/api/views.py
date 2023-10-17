@@ -248,7 +248,7 @@ class ProductAPIView(CRUDAPIView):
     @action(methods=['post', 'delete', 'patch'], detail=True,
             permission_classes=(IsOwner, ))
     def shopping_cart(self, request, *args, **kwargs):
-        '''Добавление и удаление товара из корзину.'''
+        '''Добавление и удаление товара из корзины.'''
 
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         shopping_cart, created = ShoppingCart.objects.get_or_create(
