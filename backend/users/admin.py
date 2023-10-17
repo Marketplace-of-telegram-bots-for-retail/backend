@@ -13,7 +13,7 @@ class UserAdmin(BaseAdmin):
         'first_name',
         'last_name',
         'phone',
-        'is_bayer',
+        'photo',
         'is_seller',
         'is_active',
         'created',

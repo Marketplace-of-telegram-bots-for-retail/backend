@@ -3,6 +3,8 @@ from django.db import models
 
 from core.models import TimestampedModel
 
+def user_directory_path(instance, filename):
+    return f'users/{instance.id}/{filename}'
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -17,7 +19,7 @@ class CustomUserManager(BaseUserManager):
     def create_superuser(self, email, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('username', email)
+        extra_fields.setdefault('username', email.split('@')[0])
         return self.create_user(email, password, **extra_fields)
 
 
@@ -48,13 +50,18 @@ class User(AbstractUser, TimestampedModel):
         max_length=20,
         blank=False,
     )
-    is_bayer = models.BooleanField(default=False)
+    photo = models.ImageField(
+        verbose_name='Фотография пользователя',
+        upload_to=user_directory_path,
+        blank=True,
+        null=True,
+    )
     is_seller = models.BooleanField(default=False)
 
     objects = CustomUserManager()
 
     def set_username(self):
-        self.username = self.email
+        self.username = self.email.split('@')[0]
 
     def __str__(self):
         return self.email

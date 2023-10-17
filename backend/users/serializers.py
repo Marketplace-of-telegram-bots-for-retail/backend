@@ -3,21 +3,25 @@ from djoser.conf import settings
 from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
+from api.fields import Base64ImageField
+
 User = get_user_model()
 
 
 class CustomUserSerializer(UserSerializer):
     '''Сериализатор для модели User.'''
+    photo = Base64ImageField(required=False)
 
     class Meta:
         model = User
         fields = (
             'id',
+            'username',
             'email',
             'first_name',
             'last_name',
             'phone',
-            'is_bayer',
+            'photo',
             'is_seller',
         )
 
@@ -46,8 +50,16 @@ class CustomUserCreateSerializer(UserCreateSerializer):
             'password',
         )
 
+    # def create(self, validated_data):
+    #     validated_data['username'] = validated_data['email']
+    #     user = User.objects.create_user(**validated_data)
+    #     return user
     def create(self, validated_data):
-        validated_data['username'] = validated_data['email']
+        email = validated_data.get('email')
+        if not email:
+            raise serializers.ValidationError('Email is required')
+        username = email.split('@')[0]
+        validated_data['username'] = username
         user = User.objects.create_user(**validated_data)
         return user
 
