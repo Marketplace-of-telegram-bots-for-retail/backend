@@ -26,7 +26,8 @@ class Migration(migrations.Migration):
             model_name="shoppingcart",
             name="owner",
             field=models.OneToOneField(
-                default=1,
+                blank=True,
+                null=True,
                 on_delete=django.db.models.deletion.CASCADE,
                 related_name="user_cart",
                 to=settings.AUTH_USER_MODEL,

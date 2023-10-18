@@ -208,6 +208,8 @@ class ShoppingCart(TimestampedModel):
         on_delete=models.CASCADE,
         related_name='user_cart',
         verbose_name='Владелец корзины',
+        blank=True,
+        null=True,
     )
     items = models.ManyToManyField(Product, through='ShoppingCart_Items')
 
