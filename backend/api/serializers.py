@@ -5,7 +5,14 @@ from rest_framework import serializers
 
 from api.fields import Base64ImageField
 from core.utils import checking_existence
-from products.models import Category, Favorite, Product, Review, ShoppingCart
+from products.models import (
+    Category,
+    Favorite,
+    Product,
+    Review,
+    ShoppingCart,
+    ShoppingCart_Items,
+)
 from users.serializers import CustomUserSerializer
 
 
@@ -116,7 +123,7 @@ class ReviewSerializer(serializers.ModelSerializer):
     )
     product = serializers.SlugRelatedField(slug_field='name', read_only=True)
 
-    def validate_review(self, data):
+    def validate(self, data):
         request = self.context['request']
         user = request.user
         product_id = self.context['view'].kwargs.get('product_id')
@@ -124,23 +131,9 @@ class ReviewSerializer(serializers.ModelSerializer):
         if request.method == 'POST':
             if Review.objects.filter(product=product, user=user).exists():
                 raise serializers.ValidationError(
-                    'Вы уже оставили свой отзыв к этому товару!',
+                    {'errors': ' Вы уже оставили свой отзыв к этому товару!'},
                 )
         return data
-
-    def validate_favorite(self, data):
-        request = self.context.get('request')
-        product = data['product']
-        if Review.objects.filter(user=request.user, product=product).exists():
-            raise serializers.ValidationError(
-                {'errors': 'Этот товар уже в избранном!'},
-            )
-        return data
-
-    def validate_score(self, value):
-        if not 1 <= value <= 5:
-            raise serializers.ValidationError('Выберите значение от 1 до 5')
-        return value
 
     class Meta:
         model = Review
@@ -167,26 +160,37 @@ class ReviewListSerializer(serializers.ModelSerializer):
         return ReviewSerializer(instance, context=context).data
 
 
+class ItemSerializer(serializers.ModelSerializer):
+    quantity = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = ('id', 'name', 'price', 'user', 'quantity', 'category')
+
+    def get_quantity(self, obj):
+        owner = self.context.get('request').user
+        return ShoppingCart_Items.objects.get(
+            item=obj,
+            cart_id=owner.user_cart.id,
+        ).quantity
+
+
 class ShoppingCartSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()
-    product = serializers.StringRelatedField()
+    total_cost = serializers.SerializerMethodField()
     total_amount = serializers.SerializerMethodField()
+    items = ItemSerializer(read_only=True, many=True)
 
     class Meta:
         model = ShoppingCart
-        fields = ('id', 'user', 'quantity', 'total_amount', 'product')
+        fields = ('id', 'total_cost', 'total_amount', 'items')
+
+    def get_total_cost(self, obj):
+        cart = ShoppingCart_Items.objects.filter(cart=obj)
+        return sum([item.quantity * item.item.price for item in cart])
 
     def get_total_amount(self, obj):
-        carts = ShoppingCart.objects.filter(user=obj.user)
-        return sum([item.quantity * item.product.price for item in carts])
-
-
-class ShoppingCartCreateSerializer(serializers.ModelSerializer):
-    product = ProductSerializer()
-
-    class Meta:
-        model = ShoppingCart
-        fields = ('user', 'quantity', 'product')
+        cart = ShoppingCart_Items.objects.filter(cart=obj)
+        return sum([i.quantity for i in cart])
 
 
 class FavoriteSerializer(serializers.ModelSerializer):

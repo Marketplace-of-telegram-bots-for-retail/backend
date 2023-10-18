@@ -1,7 +1,7 @@
 from functools import reduce
 from operator import or_
 
-from django.db.models import Q
+from django.db.models import F, Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import (
     OpenApiParameter,
@@ -19,44 +19,47 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from api.mixins import CRUDAPIView, ListRetrieveAPIView
-from api.permissions import AuthorCanEditAndDelete, IsAuthor
+from api.permissions import AuthorCanEditAndDelete, IsOwner
 from api.serializers import (
     CategorySerializer,
     FavoriteSerializer,
+    ItemSerializer,
     ProductReadOnlySerializer,
     ProductSerializer,
     ReviewListSerializer,
     ReviewSerializer,
-    ShoppingCartCreateSerializer,
     ShoppingCartSerializer,
 )
 from core.paginations import Pagination
-from products.models import Category, Favorite, Product, Review, ShoppingCart
+from products.models import (
+    Category,
+    Favorite,
+    Product,
+    Review,
+    ShoppingCart,
+    ShoppingCart_Items,
+)
 
 
 @extend_schema_view(
     list=extend_schema(
         summary='Получить все данные корзины',
         description=(
-            'Возвращает список ботов в корзине для текущего пользователя, где '
-            'у каждого объекта JSON в поле `total_amount` хранится итоговая '
-            'сумма, т.е. для вывода `Итого` можно взять значение '
-            '`total_amount` из любого полученного объекта JSON.'
+            'Возвращает корзину для текущего пользователя, где '
+            '`total_cost` - общая стоимость всех продуктов, '
+            '`total_amount` - общее кол-во товаров в корзине, '
+            '`items` - боты, у которых поле `quantity` - кол-во каждого бота.'
         ),
-    ),
-    retrieve=extend_schema(
-        summary='Получить данные конкретной записи в корзине',
-        description=('Возвращает данные конкретной записи в корзине.'),
     ),
 )
 class CartViewSet(ReadOnlyModelViewSet):
     '''Корзина.'''
 
-    permission_classes = (IsAuthor, IsAuthenticated)
     serializer_class = ShoppingCartSerializer
+    permission_classes = (IsOwner,)
 
     def get_queryset(self):
-        return ShoppingCart.objects.filter(user=self.request.user)
+        return ShoppingCart.objects.filter(owner=self.request.user)
 
 
 @extend_schema_view(
@@ -242,62 +245,71 @@ class ProductAPIView(CRUDAPIView):
                 )
         return queryset
 
-    @action(methods=['post'], detail=True, permission_classes=[IsAuthor])
+    @action(
+        methods=['post', 'delete', 'patch'],
+        detail=True,
+        permission_classes=(IsOwner,),
+    )
     def shopping_cart(self, request, *args, **kwargs):
-        '''Добавить товар в корзину.'''
+        '''Добавление и удаление товара из корзины.'''
 
         product = get_object_or_404(Product, id=kwargs.get('pk'))
-        cart_item, created = ShoppingCart.objects.get_or_create(
-            user=request.user,
-            product=product,
+        shopping_cart, created = ShoppingCart.objects.get_or_create(
+            owner=request.user,
         )
-        if not created:
-            cart_item.quantity += 1
-            cart_item.save()
-        serializer = ShoppingCartCreateSerializer(cart_item)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
-    @shopping_cart.mapping.delete
-    def remove_item(self, request, *args, **kwargs):
-        '''Удалить товар из корзины.'''
-
-        if request.user.is_authenticated:
-            cart_item = ShoppingCart.objects.filter(
-                user=request.user,
-                product=kwargs.get('pk'),
+        if request.method == 'POST':
+            context = {'request': request}
+            _ = ItemSerializer(context=context)
+            cart_item, created = ShoppingCart_Items.objects.get_or_create(
+                cart=shopping_cart,
+                item=product,
             )
-        else:
-            return Response(
-                'Вы не авторизованы',
-                status=status.HTTP_400_BAD_REQUEST,
+            if not created:
+                cart_item.quantity = F('quantity') + 1
+                cart_item.save()
+                return Response(
+                    f'Вы успешно увеличили количество товара {product} на 1.',
+                    status=status.HTTP_201_CREATED,
+                )
+            else:
+                return Response(
+                    f'Вы успешно добавили товар {product} в корзину.',
+                    status=status.HTTP_201_CREATED,
+                )
+
+        if request.method == 'DELETE':
+            cart_item = get_object_or_404(
+                ShoppingCart_Items,
+                cart=shopping_cart,
+                item=product,
             )
-        item_id = request.query_params.get('item_id')
-        if not item_id and cart_item:
             cart_item.delete()
+            if not ShoppingCart_Items.objects.filter(
+                cart=shopping_cart,
+            ).exists():
+                ShoppingCart.objects.get(owner=request.user).delete()
             return Response(
-                'Весь товар удален полностью',
+                f'Товар удален из корзины пользователя {self.request.user}',
                 status=status.HTTP_204_NO_CONTENT,
             )
-        if item_id and cart_item:
-            cart_item = cart_item.filter(id=item_id)
-            if cart_item:
-                cart_item = cart_item.first()
-                if cart_item.quantity == 1:
-                    return Response(
-                        'Должен быть хотя бы один объект данного типа',
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                else:
-                    cart_item.quantity -= 1
-                    cart_item.save()
+
+        if request.method == 'PATCH':
+            cart_item = get_object_or_404(
+                ShoppingCart_Items,
+                cart=shopping_cart,
+                item=product,
+            )
+            if cart_item.quantity > 1:
+                cart_item.quantity = F('quantity') - 1
+                cart_item.save()
+            else:
                 return Response(
-                    'Удален один товар',
-                    status=status.HTTP_204_NO_CONTENT,
+                    f'Нельзя удалить товар {product} таким образом.',
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
-        return Response(
-            {'error': 'Товар не найден'},
-            status=status.HTTP_404_NOT_FOUND,
-        )
+            return Response(
+                f'Вы успешно уменьшили кол-во товара {product} на 1.',
+            )
 
 
 @extend_schema_view(
@@ -330,6 +342,7 @@ class ReviewViewSet(ModelViewSet):
     '''Отзывы.'''
 
     serializer_class = ReviewSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
