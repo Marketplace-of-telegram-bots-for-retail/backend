@@ -205,26 +205,36 @@ class OrderProductList(models.Model):
 
 
 class ShoppingCart(TimestampedModel):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='пользователь',
-    )
-    product = models.ForeignKey(
-        Product,
-        on_delete=models.CASCADE,
-        verbose_name='продукт',
-    )
-    quantity = models.PositiveSmallIntegerField(
-        default=1,
-        verbose_name='количество товара',
-    )
+    owner = models.OneToOneField(
+        User, on_delete=models.CASCADE,
+        related_name='user_cart',
+        verbose_name='Владелец корзины')
+    items = models.ManyToManyField(Product, through='ShoppingCart_Items')
 
     def __str__(self):
-        return f'Корзина пользователя {self.user}'
+        return f'Корзина пользователя {self.owner.username}'
 
     class Meta:
         verbose_name = 'корзина товаров'
+        verbose_name_plural = verbose_name
+
+
+class ShoppingCart_Items(models.Model):
+    item = models.ForeignKey(
+        Product, on_delete=models.CASCADE,
+        related_name='shop_cart',
+        verbose_name='Продукт')
+    cart = models.ForeignKey(
+        ShoppingCart, on_delete=models.CASCADE,
+        verbose_name='Корзина')
+    quantity = models.PositiveSmallIntegerField(
+        default=1, verbose_name='Количество товара')
+
+    def __str__(self):
+        return f'{self.item.name} в корзине пользователя {self.cart.owner}'
+
+    class Meta:
+        verbose_name = 'товары в корзине товаров'
         verbose_name_plural = verbose_name
 
 
