@@ -31,7 +31,14 @@ from api.serializers import (
     ShoppingCartSerializer,
 )
 from core.paginations import Pagination
-from products.models import Category, Favorite, Product, Review, ShoppingCart
+from products.models import (
+    Category,
+    Favorite,
+    Product,
+    Review,
+    ShoppingCart,
+    Order,
+)
 
 
 @extend_schema_view(
@@ -374,7 +381,7 @@ class ReviewViewSet(ModelViewSet):
     ),
 )
 class OrderViewSet(ModelViewSet):
-    '''Заказы.'''
+    '''Заказы покупателя.'''
 
     def list(self, request, *args, **kwargs):
         '''Получить список заказов (в разработке).'''
@@ -405,3 +412,11 @@ class OrderViewSet(ModelViewSet):
         '''Удалить заказ (в разработке).'''
 
         return Response({'message': 'в разработке'})
+
+
+class SellerOrderViewSet(ReadOnlyModelViewSet):
+    '''Покупки у продавца'''
+
+    queryset = Order.objects.filter()
+    serializer_class = TagSerializer
+    permission_classes = (IsAdminOrReadOnly,)
