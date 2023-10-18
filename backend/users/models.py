@@ -3,8 +3,10 @@ from django.db import models
 
 from core.models import TimestampedModel
 
+
 def user_directory_path(instance, filename):
     return f'users/{instance.id}/{filename}'
+
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):

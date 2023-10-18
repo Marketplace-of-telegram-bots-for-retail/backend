@@ -10,6 +10,7 @@ User = get_user_model()
 
 class CustomUserSerializer(UserSerializer):
     '''Сериализатор для модели User.'''
+
     photo = Base64ImageField(required=False)
 
     class Meta:

@@ -13,7 +13,7 @@ from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import (
     IsAuthenticated,
-    IsAuthenticatedOrReadOnly, AllowAny,
+    IsAuthenticatedOrReadOnly,
 )
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
@@ -49,14 +49,14 @@ from products.models import (
             '`total_cost` - общая стоимость всех продуктов, '
             '`total_amount` - общее кол-во товаров в корзине, '
             '`items` - боты, у которых поле `quantity` - кол-во каждого бота.'
-        )
-    )
+        ),
+    ),
 )
 class CartViewSet(ReadOnlyModelViewSet):
     '''Корзина.'''
 
     serializer_class = ShoppingCartSerializer
-    permission_classes = (IsOwner, )
+    permission_classes = (IsOwner,)
 
     def get_queryset(self):
         return ShoppingCart.objects.filter(owner=self.request.user)
@@ -245,53 +245,71 @@ class ProductAPIView(CRUDAPIView):
                 )
         return queryset
 
-    @action(methods=['post', 'delete', 'patch'], detail=True,
-            permission_classes=(IsOwner, ))
+    @action(
+        methods=['post', 'delete', 'patch'],
+        detail=True,
+        permission_classes=(IsOwner,),
+    )
     def shopping_cart(self, request, *args, **kwargs):
         '''Добавление и удаление товара из корзины.'''
 
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         shopping_cart, created = ShoppingCart.objects.get_or_create(
-            owner=request.user)
+            owner=request.user,
+        )
         if request.method == 'POST':
             context = {'request': request}
             _ = ItemSerializer(context=context)
             cart_item, created = ShoppingCart_Items.objects.get_or_create(
-                cart=shopping_cart, item=product)
+                cart=shopping_cart,
+                item=product,
+            )
             if not created:
                 cart_item.quantity = F('quantity') + 1
                 cart_item.save()
                 return Response(
                     f'Вы успешно увеличили количество товара {product} на 1.',
-                    status=status.HTTP_201_CREATED)
+                    status=status.HTTP_201_CREATED,
+                )
             else:
                 return Response(
                     f'Вы успешно добавили товар {product} в корзину.',
-                    status=status.HTTP_201_CREATED)
+                    status=status.HTTP_201_CREATED,
+                )
 
         if request.method == 'DELETE':
             cart_item = get_object_or_404(
-                ShoppingCart_Items, cart=shopping_cart, item=product)
+                ShoppingCart_Items,
+                cart=shopping_cart,
+                item=product,
+            )
             cart_item.delete()
             if not ShoppingCart_Items.objects.filter(
-                    cart=shopping_cart).exists():
+                cart=shopping_cart,
+            ).exists():
                 ShoppingCart.objects.get(owner=request.user).delete()
             return Response(
                 f'Товар удален из корзины пользователя {self.request.user}',
-                status=status.HTTP_204_NO_CONTENT)
+                status=status.HTTP_204_NO_CONTENT,
+            )
 
         if request.method == 'PATCH':
             cart_item = get_object_or_404(
-                ShoppingCart_Items, cart=shopping_cart, item=product)
+                ShoppingCart_Items,
+                cart=shopping_cart,
+                item=product,
+            )
             if cart_item.quantity > 1:
                 cart_item.quantity = F('quantity') - 1
                 cart_item.save()
             else:
                 return Response(
                     f'Нельзя удалить товар {product} таким образом.',
-                    status=status.HTTP_400_BAD_REQUEST)
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             return Response(
-                f'Вы успешно уменьшили кол-во товара {product} на 1.')
+                f'Вы успешно уменьшили кол-во товара {product} на 1.',
+            )
 
 
 @extend_schema_view(
@@ -324,7 +342,7 @@ class ReviewViewSet(ModelViewSet):
     '''Отзывы.'''
 
     serializer_class = ReviewSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly, ]
+    permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):

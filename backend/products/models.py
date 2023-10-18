@@ -1,5 +1,3 @@
-from importlib.resources._common import _
-
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import MaxValueValidator, MinValueValidator
@@ -206,9 +204,11 @@ class OrderProductList(models.Model):
 
 class ShoppingCart(TimestampedModel):
     owner = models.OneToOneField(
-        User, on_delete=models.CASCADE,
+        User,
+        on_delete=models.CASCADE,
         related_name='user_cart',
-        verbose_name='Владелец корзины')
+        verbose_name='Владелец корзины',
+    )
     items = models.ManyToManyField(Product, through='ShoppingCart_Items')
 
     def __str__(self):
@@ -221,14 +221,20 @@ class ShoppingCart(TimestampedModel):
 
 class ShoppingCart_Items(models.Model):
     item = models.ForeignKey(
-        Product, on_delete=models.CASCADE,
+        Product,
+        on_delete=models.CASCADE,
         related_name='shop_cart',
-        verbose_name='Продукт')
+        verbose_name='Продукт',
+    )
     cart = models.ForeignKey(
-        ShoppingCart, on_delete=models.CASCADE,
-        verbose_name='Корзина')
+        ShoppingCart,
+        on_delete=models.CASCADE,
+        verbose_name='Корзина',
+    )
     quantity = models.PositiveSmallIntegerField(
-        default=1, verbose_name='Количество товара')
+        default=1,
+        verbose_name='Количество товара',
+    )
 
     def __str__(self):
         return f'{self.item.name} в корзине пользователя {self.cart.owner}'

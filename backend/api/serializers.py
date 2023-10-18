@@ -131,7 +131,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         if request.method == 'POST':
             if Review.objects.filter(product=product, user=user).exists():
                 raise serializers.ValidationError(
-                    {'errors': ' Вы уже оставили свой отзыв к этому товару!'}
+                    {'errors': ' Вы уже оставили свой отзыв к этому товару!'},
                 )
         return data
 
@@ -170,7 +170,9 @@ class ItemSerializer(serializers.ModelSerializer):
     def get_quantity(self, obj):
         owner = self.context.get('request').user
         return ShoppingCart_Items.objects.get(
-            item=obj, cart_id=owner.user_cart.id).quantity
+            item=obj,
+            cart_id=owner.user_cart.id,
+        ).quantity
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
