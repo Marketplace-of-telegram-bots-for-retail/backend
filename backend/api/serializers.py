@@ -4,7 +4,6 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.fields import Base64ImageField
-from core.utils import checking_existence
 from products.models import (
     Category,
     Favorite,
@@ -100,19 +99,23 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
 
     @extend_schema_field({'type': 'boolean', 'example': False})
     def get_is_favorited(self, object):
-        return checking_existence(
-            self.context.get('request').user,
-            object,
-            Favorite,
-        )
+        user = self.context.get('request').user
+        if user.is_anonymous:
+            return False
+        return Favorite.objects.filter(
+            user=user,
+            items=object.id,
+        ).exists()
 
     @extend_schema_field({'type': 'boolean', 'example': False})
     def get_is_in_shopping_cart(self, object):
-        return checking_existence(
-            self.context.get('request').user,
-            object,
-            ShoppingCart,
-        )
+        user = self.context.get('request').user
+        if user.is_anonymous:
+            return False
+        return ShoppingCart.objects.filter(
+            owner=user,
+            items__item=object.id,
+        ).exists()
 
 
 class ReviewSerializer(serializers.ModelSerializer):
