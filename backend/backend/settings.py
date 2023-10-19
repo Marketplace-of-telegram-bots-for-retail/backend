@@ -72,24 +72,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-if DEBUG:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': str(BASE_DIR / 'db.sqlite3'),
-        },
-    }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': config('POSTGRES_DB', default='django'),
-            'USER': config('POSTGRES_USER', default='django_user'),
-            'PASSWORD': config('POSTGRES_PASSWORD', default='django_password'),
-            'HOST': config('DB_HOST', default='postgres'),
-            'PORT': config('DB_PORT', default=5432),
-        },
-    }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('POSTGRES_DB', default='django'),
+        'USER': config('POSTGRES_USER', default='django_user'),
+        'PASSWORD': config('POSTGRES_PASSWORD', default='django_password'),
+        'HOST': config('DB_HOST', default='postgres'),
+        'PORT': config('DB_PORT', default=5432),
+    },
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
