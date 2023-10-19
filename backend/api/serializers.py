@@ -104,7 +104,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             return False
         return Favorite.objects.filter(
             user=user,
-            items=object.id,
+            product=object.id,
         ).exists()
 
     @extend_schema_field({'type': 'boolean', 'example': False})
@@ -114,7 +114,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             return False
         return ShoppingCart.objects.filter(
             owner=user,
-            items__item=object.id,
+            shoppingcart_items__item=object.id,
         ).exists()
 
 
