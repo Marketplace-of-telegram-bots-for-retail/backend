@@ -8,6 +8,8 @@ SECRET_KEY = config('SECRET_KEY', default='Secret-key')
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
+USE_SQLITE = config('USE_SQLITE', default=False, cast=bool)
+
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
 
 AUTH_USER_MODEL = 'users.User'
@@ -72,16 +74,24 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': config('POSTGRES_DB', default='django'),
-        'USER': config('POSTGRES_USER', default='django_user'),
-        'PASSWORD': config('POSTGRES_PASSWORD', default='django_password'),
-        'HOST': config('DB_HOST', default='postgres'),
-        'PORT': config('DB_PORT', default=5432),
-    },
-}
+if USE_SQLITE:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': str(BASE_DIR / 'db.sqlite3'),
+        },
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('POSTGRES_DB', default='django'),
+            'USER': config('POSTGRES_USER', default='django_user'),
+            'PASSWORD': config('POSTGRES_PASSWORD', default='django_password'),
+            'HOST': config('DB_HOST', default='postgres'),
+            'PORT': config('DB_PORT', default=5432),
+        },
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
