@@ -165,35 +165,69 @@ class ReviewListSerializer(serializers.ModelSerializer):
 
 class ItemSerializer(serializers.ModelSerializer):
     quantity = serializers.SerializerMethodField()
+    cost = serializers.SerializerMethodField()
+    in_favorite = serializers.SerializerMethodField()
+    is_selected = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ('id', 'name', 'price', 'user', 'quantity', 'category')
+        fields = ('id',
+                  'name',
+                  'article',
+                  'description',
+                  'image_1',
+                  'in_favorite',
+                  'price',
+                  'cost',
+                  'quantity',
+                  'is_selected')
 
     def get_quantity(self, obj):
         owner = self.context.get('request').user
         return ShoppingCart_Items.objects.get(
-            item=obj,
-            cart_id=owner.user_cart.id,
-        ).quantity
+            item=obj, cart_id=owner.user_cart.id).quantity
+
+    def get_cost(self, obj):
+        return obj.price * self.get_quantity(obj)
+
+    def get_in_favorite(self, obj):
+        owner = self.context.get('request').user
+        return Favorite.objects.filter(user=owner, product=obj).exists()
+
+    def get_is_selected(self, obj):
+        owner = self.context.get('request').user
+        return ShoppingCart_Items.objects.get(
+            item=obj, cart_id=owner.user_cart.id).is_selected
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
     total_cost = serializers.SerializerMethodField()
     total_amount = serializers.SerializerMethodField()
     items = ItemSerializer(read_only=True, many=True)
+    discount_sum = serializers.SerializerMethodField()
 
     class Meta:
         model = ShoppingCart
-        fields = ('id', 'total_cost', 'total_amount', 'items')
+        fields = ('id',
+                  'total_cost',
+                  'total_amount',
+                  'promocode',
+                  'discount_sum',
+                  'items')
 
     def get_total_cost(self, obj):
-        cart = ShoppingCart_Items.objects.filter(cart=obj)
+        cart = ShoppingCart_Items.objects.filter(cart=obj, is_selected=True)
         return sum([item.quantity * item.item.price for item in cart])
 
     def get_total_amount(self, obj):
-        cart = ShoppingCart_Items.objects.filter(cart=obj)
+        cart = ShoppingCart_Items.objects.filter(cart=obj, is_selected=True)
         return sum([i.quantity for i in cart])
+
+    def get_discount_sum(self, obj):
+        if obj.promocode:
+            total_cost = self.get_total_cost(obj)
+            promocode = self.context.get('promocode')
+            return int(total_cost - (total_cost / 100 * promocode))
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
