@@ -235,13 +235,14 @@ class ShoppingCart(TimestampedModel):
         verbose_name='Владелец корзины',
     )
     items = models.ManyToManyField(Product, through='ShoppingCart_Items')
+    promocode = models.BooleanField(default=False, verbose_name='Промокод')
 
     def __str__(self):
         return f'Корзина пользователя {self.owner.username}'
 
     class Meta:
-        verbose_name = 'корзина товаров'
-        verbose_name_plural = verbose_name
+        verbose_name = 'Корзина товаров'
+        verbose_name_plural = 'Корзина товаров'
 
 
 class ShoppingCart_Items(models.Model):
@@ -260,13 +261,14 @@ class ShoppingCart_Items(models.Model):
         default=1,
         verbose_name='Количество товара',
     )
+    is_selected = models.BooleanField(default=True, verbose_name='Выбран')
 
     def __str__(self):
         return f'{self.item.name} в корзине пользователя {self.cart.owner}'
 
     class Meta:
-        verbose_name = 'товары в корзине товаров'
-        verbose_name_plural = verbose_name
+        verbose_name = 'Товар в корзине'
+        verbose_name_plural = 'Товары в корзине'
 
 
 class Favorite(TimestampedModel):

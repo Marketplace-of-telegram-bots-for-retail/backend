@@ -8,6 +8,7 @@ from api.views import (
     SellerOrderViewSet,
     ProductAPIView,
     ReviewViewSet,
+    get_min_max_cost,
 )
 
 router = routers.DefaultRouter()
@@ -25,5 +26,6 @@ router.register('seller_orders', SellerOrderViewSet, basename='seller_orders')
 urlpatterns = [
     path('', include(router.urls)),
     path('', include('djoser.urls')),
-    path('auth/', include("djoser.urls.authtoken")),
+    path('auth/', include('djoser.urls.authtoken')),
+    path('get_min_max_cost/', get_min_max_cost),
 ]

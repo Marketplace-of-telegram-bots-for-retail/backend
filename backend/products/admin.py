@@ -60,12 +60,12 @@ class OrderProductListAdmin(BaseAdmin):
 
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(BaseAdmin):
-    list_display = ('pk', 'owner')
+    list_display = ('pk', 'owner', 'promocode')
 
 
 @admin.register(ShoppingCart_Items)
 class ShoppingCart_ItemsAdmin(BaseAdmin):
-    list_display = ('item', 'cart', 'quantity')
+    list_display = ('item', 'cart', 'quantity', 'is_selected')
 
 
 @admin.register(Favorite)

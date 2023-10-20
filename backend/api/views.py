@@ -1,17 +1,19 @@
 from functools import reduce
 from operator import or_
 
-from django.db.models import F, Q
+from django.db.models import F, Max, Min, Q
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import (
     OpenApiParameter,
+    OpenApiResponse,
     extend_schema,
     extend_schema_view,
 )
 from rest_framework import status
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.filters import OrderingFilter, SearchFilter
 from rest_framework.permissions import (
+    AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly,
 )
@@ -23,7 +25,6 @@ from api.permissions import AuthorCanEditAndDelete, IsOwner
 from api.serializers import (
     CategorySerializer,
     FavoriteSerializer,
-    ItemSerializer,
     ProductReadOnlySerializer,
     ProductSerializer,
     ReviewListSerializer,
@@ -31,6 +32,7 @@ from api.serializers import (
     ShoppingCartSerializer,
     OrderSerializer,
 )
+from backend.settings import PROMOCODE
 from core.paginations import Pagination
 from products.models import (
     Category,
@@ -63,6 +65,21 @@ class CartViewSet(ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return ShoppingCart.objects.filter(owner=self.request.user)
+
+    @action(methods=['post'], detail=False, permission_classes=(IsOwner,))
+    def promocode(self, request, *args, **kwargs):
+        promocode = request.data.get('promocode')
+        cart = ShoppingCart.objects.get(owner=self.request.user)
+        context = {'request': request, 'promocode': PROMOCODE.get(promocode)}
+        serializer = ShoppingCartSerializer(cart, context=context)
+        if promocode in PROMOCODE:
+            cart.promocode = True
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                'Некорректный промокод',
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 @extend_schema_view(
@@ -254,15 +271,14 @@ class ProductAPIView(CRUDAPIView):
         permission_classes=(IsOwner,),
     )
     def shopping_cart(self, request, *args, **kwargs):
-        '''Добавление и удаление товара из корзины.'''
-
+        '''Добавление товара в корзину.'''
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         shopping_cart, created = ShoppingCart.objects.get_or_create(
             owner=request.user,
         )
+        context = {'request': request}
+        serializer = ShoppingCartSerializer(shopping_cart, context=context)
         if request.method == 'POST':
-            context = {'request': request}
-            _ = ItemSerializer(context=context)
             cart_item, created = ShoppingCart_Items.objects.get_or_create(
                 cart=shopping_cart,
                 item=product,
@@ -271,12 +287,12 @@ class ProductAPIView(CRUDAPIView):
                 cart_item.quantity = F('quantity') + 1
                 cart_item.save()
                 return Response(
-                    f'Вы успешно увеличили количество товара {product} на 1.',
+                    serializer.data,
                     status=status.HTTP_201_CREATED,
                 )
             else:
                 return Response(
-                    f'Вы успешно добавили товар {product} в корзину.',
+                    serializer.data,
                     status=status.HTTP_201_CREATED,
                 )
 
@@ -291,10 +307,7 @@ class ProductAPIView(CRUDAPIView):
                 cart=shopping_cart,
             ).exists():
                 ShoppingCart.objects.get(owner=request.user).delete()
-            return Response(
-                f'Товар удален из корзины пользователя {self.request.user}',
-                status=status.HTTP_204_NO_CONTENT,
-            )
+            return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
         if request.method == 'PATCH':
             cart_item = get_object_or_404(
@@ -307,12 +320,60 @@ class ProductAPIView(CRUDAPIView):
                 cart_item.save()
             else:
                 return Response(
-                    f'Нельзя удалить товар {product} таким образом.',
+                    f'Нельзя удалить товар {product} данным способом.',
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            return Response(
-                f'Вы успешно уменьшили кол-во товара {product} на 1.',
+            return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
+
+    @action(methods=['patch'], detail=True, permission_classes=(IsOwner,))
+    def select(self, request, *args, **kwargs):
+        product = get_object_or_404(Product, id=kwargs.get('pk'))
+        shopping_cart, _ = ShoppingCart.objects.get_or_create(
+            owner=request.user,
+        )
+        context = {'request': request}
+        serializer = ShoppingCartSerializer(shopping_cart, context=context)
+        if request.method == 'PATCH':
+            ShoppingCart_Items.objects.filter(
+                item=product,
+                cart=shopping_cart,
+            ).update(is_selected=~F('is_selected'))
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        methods=['patch', 'delete'],
+        detail=False,
+        permission_classes=(IsOwner,),
+    )
+    def select_all(self, request, *args, **kwargs):
+        shopping_cart, created = ShoppingCart.objects.get_or_create(
+            owner=request.user,
+        )
+        context = {'request': request}
+        serializer = ShoppingCartSerializer(shopping_cart, context=context)
+        if request.method == 'PATCH':
+            ShoppingCart_Items.objects.filter(cart=shopping_cart).update(
+                is_selected=True,
             )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.method == 'DELETE':
+            ShoppingCart_Items.objects.filter(cart=shopping_cart).update(
+                is_selected=False,
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=['delete'], detail=False, permission_classes=(IsOwner,))
+    def delete_all_selected(self, request, *args, **kwargs):
+        shopping_cart, created = ShoppingCart.objects.get_or_create(
+            owner=request.user,
+        )
+        context = {'request': request}
+        _ = ShoppingCartSerializer(shopping_cart, context=context)
+        ShoppingCart_Items.objects.filter(
+            cart=shopping_cart,
+            is_selected=True,
+        ).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 @extend_schema_view(
@@ -469,3 +530,24 @@ class SellerOrderViewSet(ReadOnlyModelViewSet):
 #             order_with_product__product__seller=user
 #         )
 #         return products
+
+
+@extend_schema(
+    summary='Получить минимальную и максимальную стоимость бота',
+    description=(
+        'Возвращает минимальную и максимальную стоимость бота. Если данных '
+        'нет, то возвращает `null`.'
+    ),
+    responses={
+        200: OpenApiResponse(
+            response={'example': {'price__min': 500, 'price__max': 1000}},
+        ),
+    },
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_min_max_cost(request):
+    return Response(
+        Product.objects.all().aggregate(Min('price'), Max('price')),
+        status=status.HTTP_200_OK,
+    )

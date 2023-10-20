@@ -8,6 +8,8 @@ SECRET_KEY = config('SECRET_KEY', default='Secret-key')
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
+USE_SQLITE = config('USE_SQLITE', default=False, cast=bool)
+
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost').split(',')
 
 AUTH_USER_MODEL = 'users.User'
@@ -72,7 +74,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-if DEBUG:
+if USE_SQLITE:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -183,3 +185,5 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'https://marketplace-of-telegram-bots-for-retail.github.io',
 ]
+
+PROMOCODE = {'STUDENT_10': 10, 'SCHOOL_20': 20, 'BIRTHDAY_30': 30}
