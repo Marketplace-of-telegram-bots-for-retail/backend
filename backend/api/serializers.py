@@ -12,6 +12,8 @@ from products.models import (
     Review,
     ShoppingCart,
     ShoppingCart_Items,
+    Order,
+    OrderProductList,
 )
 from users.serializers import CustomUserSerializer
 
@@ -214,3 +216,51 @@ class FavoriteSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         context = {'request': request}
         return ProductSerializer(instance.product, context=context).data
+
+
+# def get_default_send_to(context):
+#     request = getattr(context.get('request'), 'user', None)
+#     if request and request.is_authenticated:
+#         return request.email
+#     return None
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    total_cost = serializers.SerializerMethodField()
+    # total_amount = serializers.SerializerMethodField()
+    product_list = ItemSerializer(read_only=True, many=True)
+    send_to = serializers.EmailField(required=False)
+
+    def get_total_cost(self, obj):
+        cart = ShoppingCart_Items.objects.filter(cart=obj)  # сюда еще чекбокс надо доп фильтром
+        return sum([item.quantity * item.item.price for item in cart])
+
+    # def create(self, validated_data):
+    #     send_to = validated_data.get('send_to')
+    #     if not send_to:
+    #         send_to = self.context['request'].user.email
+    #     validated_data['send_to'] = send_to
+    #     return super().create(validated_data)
+
+    class Meta:
+        model = Order
+        fields = (
+            'id',
+            'product_list',
+            'pay_method',
+            'send_to',
+            'is_paid',
+            'is_active',
+            'total_cost',
+            'number_order',
+        )
+        read_only_fields = (
+            'id',
+            'user',
+            'product_list',
+            'is_paid',
+            'is_active',
+            'number_order',
+            'created',
+            'modified',
+        )

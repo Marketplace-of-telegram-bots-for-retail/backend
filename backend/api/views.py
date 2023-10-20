@@ -29,6 +29,7 @@ from api.serializers import (
     ReviewListSerializer,
     ReviewSerializer,
     ShoppingCartSerializer,
+    OrderSerializer,
 )
 from core.paginations import Pagination
 from products.models import (
@@ -38,6 +39,8 @@ from products.models import (
     Review,
     ShoppingCart,
     ShoppingCart_Items,
+    Order,
+    OrderProductList,
 )
 
 
@@ -389,20 +392,53 @@ class ReviewViewSet(ModelViewSet):
 class OrderViewSet(ModelViewSet):
     '''Заказы покупателя.'''
 
-    def list(self, request, *args, **kwargs):
-        '''Получить список заказов (в разработке).'''
+    serializer_class = OrderSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,)  # тут надо еще подумать
 
-        return Response({'message': 'в разработке'})
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)
+
+    def get_serializer_context(self):
+        return {'request': self.request}
+
+    # def list(self, request, *args, **kwargs):
+    #     '''Получить список заказов (в разработке).'''
+    #     return Response({'message': 'в разработке'})
+
+    # def retrieve(self, request, *args, **kwargs):
+    #     '''Получить данные конкретного заказа (в разработке).'''
+    #     return Response({'message': 'в разработке'})
 
     def create(self, request, *args, **kwargs):
-        '''Создать заказ (в разработке).'''
+        # Получаем данные из запроса
+        pay_method = request.data.get('pay_method')
+        send_to = request.data.get('send_to')
+        if not send_to:
+            send_to = self.request.user.email
+        # Получаем текущего пользователя
+        user = self.request.user
 
-        return Response({'message': 'в разработке'})
+        # Получаем продукты в корзине пользователя
+        cart_items = ShoppingCart_Items.objects.filter(cart__owner=user)
+        # print(cart_items)
+        # Создаем заказ
+        order = Order.objects.create(
+            user=user,
+            pay_method=pay_method,
+            send_to=send_to,
+        )
 
-    def retrieve(self, request, *args, **kwargs):
-        '''Получить данные конкретного заказа (в разработке).'''
-
-        return Response({'message': 'в разработке'})
+        # Добавляем продукты в заказ
+        for item in cart_items:
+            OrderProductList.objects.create(
+                order=order,
+                product=item.item,
+                quantity=item.quantity
+            )
+            # print(item.item)
+        # Возвращаем созданный заказ
+        # serializer = OrderSerializer(order)
+        return Response("Заказ успешно сформирован")
 
     def update(self, request, *args, **kwargs):
         '''Обновить данные заказа целиком (в разработке).'''
@@ -421,8 +457,15 @@ class OrderViewSet(ModelViewSet):
 
 
 class SellerOrderViewSet(ReadOnlyModelViewSet):
-    '''Покупки у продавца'''
+    '''Продажи у продавца'''
+    pass
 
-    queryset = Order.objects.filter()
-    serializer_class = TagSerializer
-    permission_classes = (IsAdminOrReadOnly,)
+#     serializer_class = ProductSerializer
+#     permission_classes = (IsOwner,) # продумай пермишены
+
+#     def get_queryset(self):
+#         user = self.request.user
+#         products = Product.objects.filter(
+#             order_with_product__product__seller=user
+#         )
+#         return products
