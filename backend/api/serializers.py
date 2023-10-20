@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema_field
@@ -63,6 +64,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
     rating = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
+    count_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -82,6 +84,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             'category',
             'is_favorited',
             'is_in_shopping_cart',
+            'count_in_shopping_cart',
             'is_active',
             'created',
             'modified',
@@ -116,6 +119,22 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             owner=user,
             shoppingcart_items__item=object.id,
         ).exists()
+
+    @extend_schema_field({'type': 'int', 'example': 2})
+    def get_count_in_shopping_cart(self, object):
+        user = self.context.get('request').user
+        if user.is_anonymous:
+            return 0
+        try:
+            return ShoppingCart_Items.objects.get(
+                item=object.id,
+                cart=ShoppingCart.objects.get(
+                    owner=user,
+                    shoppingcart_items__item=object.id,
+                ),
+            ).quantity
+        except ObjectDoesNotExist:
+            return 0
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -171,21 +190,25 @@ class ItemSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ('id',
-                  'name',
-                  'article',
-                  'description',
-                  'image_1',
-                  'in_favorite',
-                  'price',
-                  'cost',
-                  'quantity',
-                  'is_selected')
+        fields = (
+            'id',
+            'name',
+            'article',
+            'description',
+            'image_1',
+            'in_favorite',
+            'price',
+            'cost',
+            'quantity',
+            'is_selected',
+        )
 
     def get_quantity(self, obj):
         owner = self.context.get('request').user
         return ShoppingCart_Items.objects.get(
-            item=obj, cart_id=owner.user_cart.id).quantity
+            item=obj,
+            cart_id=owner.user_cart.id,
+        ).quantity
 
     def get_cost(self, obj):
         return obj.price * self.get_quantity(obj)
@@ -197,7 +220,9 @@ class ItemSerializer(serializers.ModelSerializer):
     def get_is_selected(self, obj):
         owner = self.context.get('request').user
         return ShoppingCart_Items.objects.get(
-            item=obj, cart_id=owner.user_cart.id).is_selected
+            item=obj,
+            cart_id=owner.user_cart.id,
+        ).is_selected
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
@@ -208,12 +233,14 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ShoppingCart
-        fields = ('id',
-                  'total_cost',
-                  'total_amount',
-                  'promocode',
-                  'discount_sum',
-                  'items')
+        fields = (
+            'id',
+            'total_cost',
+            'total_amount',
+            'promocode',
+            'discount_sum',
+            'items',
+        )
 
     def get_total_cost(self, obj):
         cart = ShoppingCart_Items.objects.filter(cart=obj, is_selected=True)

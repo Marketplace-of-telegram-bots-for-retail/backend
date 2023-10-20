@@ -185,8 +185,4 @@ CORS_ALLOWED_ORIGINS = [
     'https://marketplace-of-telegram-bots-for-retail.github.io',
 ]
 
-PROMOCODE = {
-    'STUDENT_10': 10,
-    'SCHOOL_20': 20,
-    'BIRTHDAY_30': 30
-}
+PROMOCODE = {'STUDENT_10': 10, 'SCHOOL_20': 20, 'BIRTHDAY_30': 30}
