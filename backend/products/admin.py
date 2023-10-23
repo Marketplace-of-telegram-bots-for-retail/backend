@@ -54,7 +54,7 @@ class OrderProductListAdmin(BaseAdmin):
 
 @admin.register(ShoppingCart)
 class ShoppingCartAdmin(BaseAdmin):
-    list_display = ('pk', 'owner', 'promocode')
+    list_display = ('pk', 'owner', 'discount')
 
 
 @admin.register(ShoppingCart_Items)
