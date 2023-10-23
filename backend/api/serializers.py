@@ -229,7 +229,7 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
     total_cost = serializers.SerializerMethodField()
     total_amount = serializers.SerializerMethodField()
     items = ItemSerializer(read_only=True, many=True)
-    discount_sum = serializers.SerializerMethodField()
+    discount_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = ShoppingCart
@@ -237,8 +237,8 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
             'id',
             'total_cost',
             'total_amount',
-            'promocode',
-            'discount_sum',
+            'discount_amount',
+            'discount',
             'items',
         )
 
@@ -250,11 +250,10 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         cart = ShoppingCart_Items.objects.filter(cart=obj, is_selected=True)
         return sum([i.quantity for i in cart])
 
-    def get_discount_sum(self, obj):
-        if obj.promocode:
+    def get_discount_amount(self, obj):
+        if obj.discount:
             total_cost = self.get_total_cost(obj)
-            promocode = self.context.get('promocode')
-            return int(total_cost - (total_cost / 100 * promocode))
+            return int(total_cost - (total_cost / 100 * obj.discount))
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
