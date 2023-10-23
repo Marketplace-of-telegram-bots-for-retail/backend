@@ -206,7 +206,8 @@ class ItemSerializer(serializers.ModelSerializer):
     def get_quantity(self, obj):
         owner = self.context.get('request').user
         return ShoppingCart_Items.objects.get(
-            item=obj, cart_id=owner.user_cart.id
+            item=obj,
+            cart_id=owner.user_cart.id,
         ).quantity
 
     def get_cost(self, obj):
@@ -219,7 +220,8 @@ class ItemSerializer(serializers.ModelSerializer):
     def get_is_selected(self, obj):
         owner = self.context.get('request').user
         return ShoppingCart_Items.objects.get(
-            item=obj, cart_id=owner.user_cart.id
+            item=obj,
+            cart_id=owner.user_cart.id,
         ).is_selected
 
 

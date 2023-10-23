@@ -207,10 +207,13 @@ class ShoppingCart(TimestampedModel):
         User,
         on_delete=models.CASCADE,
         related_name='user_cart',
-        verbose_name='Владелец корзины')
+        verbose_name='Владелец корзины',
+    )
     items = models.ManyToManyField(Product, through='ShoppingCart_Items')
     discount = models.PositiveSmallIntegerField(
-        null=True, verbose_name='Процент скидки')
+        null=True,
+        verbose_name='Процент скидки',
+    )
 
     def __str__(self):
         return f'Корзина пользователя {self.owner.username}'
@@ -220,15 +223,21 @@ class ShoppingCart(TimestampedModel):
 
 
 class ShoppingCart_Items(models.Model):
-    item = models.ForeignKey(Product,
-                             on_delete=models.CASCADE,
-                             related_name='shop_cart',
-                             verbose_name='Продукт')
-    cart = models.ForeignKey(ShoppingCart,
-                             on_delete=models.CASCADE,
-                             verbose_name='Корзина')
+    item = models.ForeignKey(
+        Product,
+        on_delete=models.CASCADE,
+        related_name='shop_cart',
+        verbose_name='Продукт',
+    )
+    cart = models.ForeignKey(
+        ShoppingCart,
+        on_delete=models.CASCADE,
+        verbose_name='Корзина',
+    )
     quantity = models.PositiveSmallIntegerField(
-        default=1, verbose_name='Количество товара')
+        default=1,
+        verbose_name='Количество товара',
+    )
     is_selected = models.BooleanField(default=True, verbose_name='Выбран')
 
     def __str__(self):

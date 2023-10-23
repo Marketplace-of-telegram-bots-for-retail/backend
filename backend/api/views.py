@@ -77,7 +77,8 @@ class CartViewSet(ReadOnlyModelViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response(
-                'Некорректный промокод', status=status.HTTP_400_BAD_REQUEST
+                'Некорректный промокод',
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
 
@@ -274,39 +275,46 @@ class ProductAPIView(CRUDAPIView):
 
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         shopping_cart, created = ShoppingCart.objects.get_or_create(
-            owner=request.user
+            owner=request.user,
         )
         context = {'request': request}
         serializer = ShoppingCartSerializer(shopping_cart, context=context)
         if request.method == 'POST':
             cart_item, created = ShoppingCart_Items.objects.get_or_create(
-                cart=shopping_cart, item=product
+                cart=shopping_cart,
+                item=product,
             )
             if not created:
                 cart_item.quantity = F('quantity') + 1
                 cart_item.save()
                 return Response(
-                    serializer.data, status=status.HTTP_201_CREATED
+                    serializer.data,
+                    status=status.HTTP_201_CREATED,
                 )
             else:
                 return Response(
-                    serializer.data, status=status.HTTP_201_CREATED
+                    serializer.data,
+                    status=status.HTTP_201_CREATED,
                 )
 
         if request.method == 'DELETE':
             cart_item = get_object_or_404(
-                ShoppingCart_Items, cart=shopping_cart, item=product
+                ShoppingCart_Items,
+                cart=shopping_cart,
+                item=product,
             )
             cart_item.delete()
             if not ShoppingCart_Items.objects.filter(
-                cart=shopping_cart
+                cart=shopping_cart,
             ).exists():
                 ShoppingCart.objects.get(owner=request.user).delete()
             return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
         if request.method == 'PATCH':
             cart_item = get_object_or_404(
-                ShoppingCart_Items, cart=shopping_cart, item=product
+                ShoppingCart_Items,
+                cart=shopping_cart,
+                item=product,
             )
             if cart_item.quantity > 1:
                 cart_item.quantity = F('quantity') - 1
@@ -324,13 +332,14 @@ class ProductAPIView(CRUDAPIView):
 
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         shopping_cart, _ = ShoppingCart.objects.get_or_create(
-            owner=request.user
+            owner=request.user,
         )
         context = {'request': request}
         serializer = ShoppingCartSerializer(shopping_cart, context=context)
         if request.method == 'PATCH':
             ShoppingCart_Items.objects.filter(
-                item=product, cart=shopping_cart
+                item=product,
+                cart=shopping_cart,
             ).update(is_selected=~F('is_selected'))
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -343,18 +352,18 @@ class ProductAPIView(CRUDAPIView):
         '''Выбор всех элементов в корзине.'''
 
         shopping_cart, created = ShoppingCart.objects.get_or_create(
-            owner=request.user
+            owner=request.user,
         )
         context = {'request': request}
         serializer = ShoppingCartSerializer(shopping_cart, context=context)
         if request.method == 'PATCH':
             ShoppingCart_Items.objects.filter(cart=shopping_cart).update(
-                is_selected=True
+                is_selected=True,
             )
             return Response(serializer.data, status=status.HTTP_200_OK)
         if request.method == 'DELETE':
             ShoppingCart_Items.objects.filter(cart=shopping_cart).update(
-                is_selected=False
+                is_selected=False,
             )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -366,7 +375,8 @@ class ProductAPIView(CRUDAPIView):
         context = {'request': request}
         serializer = ShoppingCartSerializer(shopping_cart, context=context)
         ShoppingCart_Items.objects.filter(
-            cart=shopping_cart, is_selected=True
+            cart=shopping_cart,
+            is_selected=True,
         ).delete()
         if not ShoppingCart_Items.objects.filter(cart=shopping_cart).exists():
             shopping_cart.delete()
