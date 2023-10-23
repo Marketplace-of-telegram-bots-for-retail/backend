@@ -289,14 +289,65 @@ class FavoriteSerializer(serializers.ModelSerializer):
 #     return None
 
 
+# class OrderItemSerializer(serializers.ModelSerializer):
+#     quantity = serializers.SerializerMethodField()
+#     cost = serializers.SerializerMethodField()
+#     in_favorite = serializers.SerializerMethodField()
+#     is_selected = serializers.SerializerMethodField()
+
+#     class Meta:
+#         model = Product
+#         fields = (
+#             'id',
+#             'name',
+#             'article',
+#             'description',
+#             'image_1',
+#             'in_favorite',
+#             'price',
+#             'cost',
+#             'quantity',
+#             'is_selected',
+#         )
+
+#     def get_quantity(self, obj):
+#         owner = self.context.get('request').user
+#         return ShoppingCart_Items.objects.get(
+#             item=obj,
+#             cart_id=owner.user_cart.id,
+#         ).quantity
+
+#     def get_cost(self, obj):
+#         return obj.price * self.get_quantity(obj)
+
+#     def get_in_favorite(self, obj):
+#         owner = self.context.get('request').user
+#         return Favorite.objects.filter(user=owner, product=obj).exists()
+
+#     def get_is_selected(self, obj):
+#         owner = self.context.get('request').user
+#         return ShoppingCart_Items.objects.get(
+#             item=obj,
+#             cart_id=owner.user_cart.id,
+#         ).is_selected
+
+
 class OrderSerializer(serializers.ModelSerializer):
     total_cost = serializers.SerializerMethodField()
     # total_amount = serializers.SerializerMethodField()
     product_list = ItemSerializer(read_only=True, many=True)
     send_to = serializers.EmailField(required=False)
 
+    # def get_total_cost(self, obj): код Семена
+    #     cart = ShoppingCart_Items.objects.filter(cart=obj, is_selected=True)
+    #     return sum([item.quantity * item.item.price for item in cart])
+
+
     def get_total_cost(self, obj):
-        cart = ShoppingCart_Items.objects.filter(cart=obj)  # сюда еще чекбокс надо доп фильтром
+        user = self.context['request'].user
+        cart = ShoppingCart_Items.objects.filter(cart__owner=user)
+        print("Total cost")
+        print(cart)
         return sum([item.quantity * item.item.price for item in cart])
 
     # def create(self, validated_data):
@@ -310,12 +361,13 @@ class OrderSerializer(serializers.ModelSerializer):
         model = Order
         fields = (
             'id',
-            'product_list',
+            'user',
             'pay_method',
+            'total_cost',
             'send_to',
             'is_paid',
             'is_active',
-            'total_cost',
+            'product_list',
             'number_order',
         )
         read_only_fields = (
