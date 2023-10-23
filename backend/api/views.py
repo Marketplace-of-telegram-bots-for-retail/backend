@@ -68,12 +68,15 @@ class CartViewSet(ReadOnlyModelViewSet):
 
     @action(methods=['post'], detail=False, permission_classes=(IsOwner,))
     def promocode(self, request, *args, **kwargs):
+        '''Ввод промокода для скидки.'''
+
         promocode = request.data.get('promocode')
         cart = ShoppingCart.objects.get(owner=self.request.user)
         context = {'request': request, 'promocode': PROMOCODE.get(promocode)}
         serializer = ShoppingCartSerializer(cart, context=context)
         if promocode in PROMOCODE:
-            cart.promocode = True
+            cart.discount = PROMOCODE[promocode]
+            cart.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             return Response(
@@ -272,6 +275,7 @@ class ProductAPIView(CRUDAPIView):
     )
     def shopping_cart(self, request, *args, **kwargs):
         '''Добавление товара в корзину.'''
+
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         shopping_cart, created = ShoppingCart.objects.get_or_create(
             owner=request.user,
@@ -327,6 +331,8 @@ class ProductAPIView(CRUDAPIView):
 
     @action(methods=['patch'], detail=True, permission_classes=(IsOwner,))
     def select(self, request, *args, **kwargs):
+        '''Выбор элемента в корзине.'''
+
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         shopping_cart, _ = ShoppingCart.objects.get_or_create(
             owner=request.user,
@@ -346,6 +352,8 @@ class ProductAPIView(CRUDAPIView):
         permission_classes=(IsOwner,),
     )
     def select_all(self, request, *args, **kwargs):
+        '''Выбор всех элементов в корзине.'''
+
         shopping_cart, created = ShoppingCart.objects.get_or_create(
             owner=request.user,
         )
@@ -364,16 +372,19 @@ class ProductAPIView(CRUDAPIView):
 
     @action(methods=['delete'], detail=False, permission_classes=(IsOwner,))
     def delete_all_selected(self, request, *args, **kwargs):
-        shopping_cart, created = ShoppingCart.objects.get_or_create(
-            owner=request.user,
-        )
+        '''Удаление всех выбранных элементов в корзине.'''
+
+        shopping_cart = ShoppingCart.objects.get(owner=request.user)
         context = {'request': request}
-        _ = ShoppingCartSerializer(shopping_cart, context=context)
+        serializer = ShoppingCartSerializer(shopping_cart, context=context)
         ShoppingCart_Items.objects.filter(
             cart=shopping_cart,
             is_selected=True,
         ).delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if not ShoppingCart_Items.objects.filter(cart=shopping_cart).exists():
+            shopping_cart.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(

@@ -235,14 +235,16 @@ class ShoppingCart(TimestampedModel):
         verbose_name='Владелец корзины',
     )
     items = models.ManyToManyField(Product, through='ShoppingCart_Items')
-    promocode = models.BooleanField(default=False, verbose_name='Промокод')
+    discount = models.PositiveSmallIntegerField(
+        null=True,
+        verbose_name='Процент скидки',
+    )
 
     def __str__(self):
         return f'Корзина пользователя {self.owner.username}'
 
     class Meta:
         verbose_name = 'Корзина товаров'
-        verbose_name_plural = 'Корзина товаров'
 
 
 class ShoppingCart_Items(models.Model):
