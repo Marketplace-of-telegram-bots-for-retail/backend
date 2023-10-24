@@ -195,6 +195,7 @@ class ItemSerializer(serializers.ModelSerializer):
     cost = serializers.SerializerMethodField()
     in_favorite = serializers.SerializerMethodField()
     is_selected = serializers.SerializerMethodField()
+    category = CategorySerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
@@ -205,6 +206,7 @@ class ItemSerializer(serializers.ModelSerializer):
             'description',
             'image_1',
             'in_favorite',
+            'category',
             'price',
             'cost',
             'quantity',

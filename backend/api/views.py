@@ -311,7 +311,7 @@ class ProductAPIView(CRUDAPIView):
                 cart=shopping_cart,
             ).exists():
                 ShoppingCart.objects.get(owner=request.user).delete()
-            return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         if request.method == 'PATCH':
             cart_item = get_object_or_404(
@@ -327,7 +327,7 @@ class ProductAPIView(CRUDAPIView):
                     f'Нельзя удалить товар {product} данным способом.',
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(methods=['patch'], detail=True, permission_classes=(IsOwner,))
     def select(self, request, *args, **kwargs):
