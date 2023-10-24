@@ -317,7 +317,8 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context.get('request').user
-        cart_items = ShoppingCart_Items.objects.filter(cart__owner=user)
+        cart_items = ShoppingCart_Items.objects.filter(
+            cart__owner=user, is_selected=True)
         order = Order.objects.create(
             user=user,
             pay_method=validated_data.get('pay_method'),

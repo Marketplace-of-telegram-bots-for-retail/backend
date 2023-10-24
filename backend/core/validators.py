@@ -31,7 +31,9 @@ def validate_order(context):
 
 def validate_cart(context):
     user = context.get('request').user
-    cart = ShoppingCart_Items.objects.filter(cart__owner=user)
+    cart = ShoppingCart_Items.objects.filter(
+        cart__owner=user, is_selected=True
+    )
     if cart:
         return True
     raise ValidationError({'message': 'Ваша корзина пуста.'})
