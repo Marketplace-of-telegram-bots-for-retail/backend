@@ -3,6 +3,7 @@ from operator import or_
 
 from django.db.models import F, Max, Min, Q
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import (
     OpenApiParameter,
     OpenApiResponse,
@@ -20,29 +21,28 @@ from rest_framework.permissions import (
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
-from api.mixins import CRUDAPIView, ListRetrieveAPIView
+from api.mixins import CRUDAPIView, ListRetrieveAPIView, OrderAPIView
 from api.permissions import AuthorCanEditAndDelete, IsOwner
 from api.serializers import (
     CategorySerializer,
     FavoriteSerializer,
+    OrderSerializer,
     ProductReadOnlySerializer,
     ProductSerializer,
     ReviewListSerializer,
     ReviewSerializer,
     ShoppingCartSerializer,
-    OrderSerializer,
 )
 from backend.settings import PROMOCODE
 from core.paginations import Pagination
 from products.models import (
     Category,
     Favorite,
+    Order,
     Product,
     Review,
     ShoppingCart,
     ShoppingCart_Items,
-    Order,
-    OrderProductList,
 )
 
 
@@ -437,35 +437,44 @@ class ReviewViewSet(ModelViewSet):
 
 @extend_schema_view(
     list=extend_schema(
-        summary='Получить список заказов (в разработке)',
-        description=('Не работает.'),
+        summary='Получить список заказов',
+        description=('Возвращает список заказов текущего пользователя'),
+        parameters=[
+            OpenApiParameter(
+                name='is_paid',
+                description=(
+                    'При is_paid=True выводит все оплаченные заказы. '
+                    'При is_paid=False выводит все неоплаченные заказы.'
+                ),
+                required=False,
+                type=str,
+            ),
+        ],
     ),
     create=extend_schema(
-        summary='Создать заказ (в разработке)',
-        description=('Не работает.'),
+        summary='Создать заказ.',
+        description=('Создаёт заказ из текущей корзины пользователя'),
     ),
     retrieve=extend_schema(
-        summary='Получить данные конкретного заказа (в разработке)',
-        description=('Не работает.'),
-    ),
-    update=extend_schema(
-        summary='Обновить данные заказа целиком (в разработке)',
-        description=('Не работает.'),
-    ),
-    partial_update=extend_schema(
-        summary='Обновить данные заказа частично (в разработке)',
-        description=('Не работает.'),
+        summary='Получить данные конкретного заказа',
+        description=('Возаращает данные конкретного заказа'),
     ),
     destroy=extend_schema(
-        summary='Удалить заказ (в разработке)',
-        description=('Не работает.'),
+        summary='Удалить заказ',
+        description=('Удаляет заказ.'),
     ),
 )
-class OrderViewSet(ModelViewSet):
+class OrderViewSet(OrderAPIView):
     '''Заказы покупателя.'''
 
     serializer_class = OrderSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)  # тут надо еще подумать
+    permission_classes = (AuthorCanEditAndDelete,)
+    filter_backends = (
+        DjangoFilterBackend,
+        OrderingFilter,
+    )
+    filterset_fields = ('is_paid',)
+    ordering_fields = 'created'
 
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
@@ -473,74 +482,29 @@ class OrderViewSet(ModelViewSet):
     def get_serializer_context(self):
         return {'request': self.request}
 
-    # def list(self, request, *args, **kwargs):
-    #     '''Получить список заказов (в разработке).'''
-    #     return Response({'message': 'в разработке'})
-
-    # def retrieve(self, request, *args, **kwargs):
-    #     '''Получить данные конкретного заказа (в разработке).'''
-    #     return Response({'message': 'в разработке'})
-
-    def create(self, request, *args, **kwargs):
-        # Получаем данные из запроса
-        pay_method = request.data.get('pay_method')
-        send_to = request.data.get('send_to')
-        if not send_to:
-            send_to = self.request.user.email
-        # Получаем текущего пользователя
-        user = self.request.user
-
-        # Получаем продукты в корзине пользователя
-        cart_items = ShoppingCart_Items.objects.filter(cart__owner=user)
-        # print(cart_items)
-        # Создаем заказ
-        order = Order.objects.create(
-            user=user,
-            pay_method=pay_method,
-            send_to=send_to,
+    def create(self, request):
+        serializer = OrderSerializer(
+            data=request.data, context={'request': request}
         )
-
-        # Добавляем продукты в заказ
-        for item in cart_items:
-            OrderProductList.objects.create(
-                order=order,
-                product=item.item,
-                quantity=item.quantity
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
             )
-            # print(item.item)
-        # Возвращаем созданный заказ
-        # serializer = OrderSerializer(order)
-        return Response("Заказ успешно сформирован")
 
-    def update(self, request, *args, **kwargs):
-        '''Обновить данные заказа целиком (в разработке).'''
+    def destroy(self, request, pk):
+        '''Удалить неоплаченный заказ'''
 
-        return Response({'message': 'в разработке'})
-
-    def partial_update(self, request, *args, **kwargs):
-        '''Обновить данные заказа частично (в разработке).'''
-
-        return Response({'message': 'в разработке'})
-
-    def destroy(self, request, *args, **kwargs):
-        '''Удалить заказ (в разработке).'''
-
-        return Response({'message': 'в разработке'})
-
-
-class SellerOrderViewSet(ReadOnlyModelViewSet):
-    '''Продажи у продавца'''
-    pass
-
-#     serializer_class = ProductSerializer
-#     permission_classes = (IsOwner,) # продумай пермишены
-
-#     def get_queryset(self):
-#         user = self.request.user
-#         products = Product.objects.filter(
-#             order_with_product__product__seller=user
-#         )
-#         return products
+        order = get_object_or_404(
+            Order, user=request.user, is_paid=False, id=pk
+        )
+        order.delete()
+        return Response(
+            {'message': 'Заказ успешно удален'},
+            status=status.HTTP_200_OK,
+        )
 
 
 @extend_schema(

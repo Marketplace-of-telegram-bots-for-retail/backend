@@ -6,10 +6,10 @@ from django.db import models
 from core.models import TimestampedModel
 from users.models import User
 
-PAY_METHOD_CHOICES = (
-    (1, 'card'),
-    (2, 'sbp'),
-)
+PAY_METHOD_CHOICES = [
+    ('card', 'card'),
+    ('sbp', 'sbp'),
+]
 
 
 def user_directory_path(instance, filename):
@@ -165,11 +165,12 @@ class Order(TimestampedModel):
         related_name='product_in_order',
         verbose_name='продукт в заказе',
     )
-    # order_cost = models.IntegerField() попробуй в сериализаторе подтянуть
-    pay_method = models.IntegerField(
+    pay_method = models.CharField(
         'Метод оплаты',
+        max_length=4,
         choices=PAY_METHOD_CHOICES,
-        default=1
+        blank=True,
+        null=True,
     )
     send_to = models.EmailField('Куда прислать', max_length=200, blank=True)
     is_paid = models.BooleanField('Оплачен', default=False)

@@ -5,15 +5,21 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.fields import Base64ImageField
+from core.validators import (
+    validate_cart,
+    validate_order,
+    validate_pay_method,
+    validate_send_to,
+)
 from products.models import (
     Category,
     Favorite,
+    Order,
+    OrderProductList,
     Product,
     Review,
     ShoppingCart,
     ShoppingCart_Items,
-    Order,
-    OrderProductList,
 )
 from users.serializers import CustomUserSerializer
 
@@ -281,80 +287,45 @@ class FavoriteSerializer(serializers.ModelSerializer):
         return ProductSerializer(instance.product, context=context).data
 
 
-# def get_default_send_to(context):
-#     request = getattr(context.get('request'), 'user', None)
-#     if request and request.is_authenticated:
-#         return request.email
-#     return None
-
-
-# class OrderItemSerializer(serializers.ModelSerializer):
-#     quantity = serializers.SerializerMethodField()
-#     cost = serializers.SerializerMethodField()
-#     in_favorite = serializers.SerializerMethodField()
-#     is_selected = serializers.SerializerMethodField()
-
-#     class Meta:
-#         model = Product
-#         fields = (
-#             'id',
-#             'name',
-#             'article',
-#             'description',
-#             'image_1',
-#             'in_favorite',
-#             'price',
-#             'cost',
-#             'quantity',
-#             'is_selected',
-#         )
-
-#     def get_quantity(self, obj):
-#         owner = self.context.get('request').user
-#         return ShoppingCart_Items.objects.get(
-#             item=obj,
-#             cart_id=owner.user_cart.id,
-#         ).quantity
-
-#     def get_cost(self, obj):
-#         return obj.price * self.get_quantity(obj)
-
-#     def get_in_favorite(self, obj):
-#         owner = self.context.get('request').user
-#         return Favorite.objects.filter(user=owner, product=obj).exists()
-
-#     def get_is_selected(self, obj):
-#         owner = self.context.get('request').user
-#         return ShoppingCart_Items.objects.get(
-#             item=obj,
-#             cart_id=owner.user_cart.id,
-#         ).is_selected
-
-
 class OrderSerializer(serializers.ModelSerializer):
     total_cost = serializers.SerializerMethodField()
-    # total_amount = serializers.SerializerMethodField()
     product_list = ItemSerializer(read_only=True, many=True)
     send_to = serializers.EmailField(required=False)
-
-    # def get_total_cost(self, obj): код Семена
-    #     cart = ShoppingCart_Items.objects.filter(cart=obj, is_selected=True)
-    #     return sum([item.quantity * item.item.price for item in cart])
-
 
     def get_total_cost(self, obj):
         user = self.context['request'].user
         cart = ShoppingCart_Items.objects.filter(cart__owner=user)
-        print("Total cost")
-        print(cart)
-        return sum([item.quantity * item.item.price for item in cart])
+        price = sum([item.quantity * item.item.price for item in cart])
+        discount = ShoppingCart.objects.get(owner=user).discount
+        if discount:
+            return int(price - (price * discount) / 100)
+        return price
 
-    # def create(self, validated_data):
-    #     send_to = validated_data.get('send_to')
-    #     if not send_to:
-    #         send_to = self.context['request'].user.email
-    #     validated_data['send_to'] = send_to
-    #     return super().create(validated_data)
+    def validate(self, data):
+        send_to = validate_send_to(data.get('send_to'), self.context)
+        validate_pay_method(data.get('pay_method'))
+        validate_order(self.context)
+        validate_cart(self.context)
+        data.update(
+            {
+                'send_to': send_to,
+            }
+        )
+        return data
+
+    def create(self, validated_data):
+        user = self.context.get('request').user
+        cart_items = ShoppingCart_Items.objects.filter(cart__owner=user)
+        order = Order.objects.create(
+            user=user,
+            pay_method=validated_data.get('pay_method'),
+            send_to=validated_data.get('send_to'),
+        )
+        for item in cart_items:
+            OrderProductList.objects.create(
+                order=order, product=item.item, quantity=item.quantity
+            )
+        return order
 
     class Meta:
         model = Order
@@ -366,8 +337,8 @@ class OrderSerializer(serializers.ModelSerializer):
             'send_to',
             'is_paid',
             'is_active',
-            'product_list',
             'number_order',
+            'product_list',
         )
         read_only_fields = (
             'id',

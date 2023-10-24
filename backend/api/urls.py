@@ -5,7 +5,6 @@ from api.views import (
     CartViewSet,
     CategoryAPIView,
     OrderViewSet,
-    SellerOrderViewSet,
     ProductAPIView,
     ReviewViewSet,
     get_min_max_cost,
@@ -21,7 +20,6 @@ router.register(
 )
 router.register('cart', CartViewSet, basename='cart')
 router.register('orders', OrderViewSet, basename='orders')
-router.register('seller_orders', SellerOrderViewSet, basename='seller_orders')
 
 urlpatterns = [
     path('', include(router.urls)),

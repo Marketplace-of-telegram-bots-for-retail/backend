@@ -44,8 +44,8 @@ class ProductAdmin(BaseAdmin):
 
 @admin.register(Order)
 class OrderAdmin(BaseAdmin):
-    inlines = (OrderProductListInline, )
-    list_display = ('pk', 'user', 'is_paid', 'is_active')
+    inlines = (OrderProductListInline,)
+    list_display = ('pk', 'user', 'pay_method', 'is_paid', 'is_active')
 
 
 @admin.register(Review)
