@@ -1,8 +1,6 @@
 import django.core.validators
-import django.db.models.deletion
 from django.db import migrations, models
-
-import products.models
+import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
@@ -31,10 +29,7 @@ class Migration(migrations.Migration):
             model_name="order",
             name="number_order",
             field=models.PositiveIntegerField(
-                default=products.models.Order.get_number_order,
-                editable=False,
-                unique=True,
-                verbose_name="Номер заказа",
+                default=0, editable=False, verbose_name="Номер заказа",
             ),
         ),
         migrations.AddField(
