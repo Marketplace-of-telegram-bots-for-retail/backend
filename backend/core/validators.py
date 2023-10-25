@@ -24,15 +24,16 @@ def validate_order(context):
         raise ValidationError(
             {
                 'message': 'У вас уже есть неоплаченный заказ, оплатите '
-                'или удалите его.'
-            }
+                'или удалите его.',
+            },
         )
 
 
 def validate_cart(context):
     user = context.get('request').user
     cart = ShoppingCart_Items.objects.filter(
-        cart__owner=user, is_selected=True
+        cart__owner=user,
+        is_selected=True,
     )
     if cart:
         return True

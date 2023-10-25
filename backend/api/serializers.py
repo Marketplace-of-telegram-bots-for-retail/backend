@@ -311,14 +311,16 @@ class OrderSerializer(serializers.ModelSerializer):
         data.update(
             {
                 'send_to': send_to,
-            }
+            },
         )
         return data
 
     def create(self, validated_data):
         user = self.context.get('request').user
         cart_items = ShoppingCart_Items.objects.filter(
-            cart__owner=user, is_selected=True)
+            cart__owner=user,
+            is_selected=True,
+        )
         order = Order.objects.create(
             user=user,
             pay_method=validated_data.get('pay_method'),
@@ -326,7 +328,9 @@ class OrderSerializer(serializers.ModelSerializer):
         )
         for item in cart_items:
             OrderProductList.objects.create(
-                order=order, product=item.item, quantity=item.quantity
+                order=order,
+                product=item.item,
+                quantity=item.quantity,
             )
         return order
 
