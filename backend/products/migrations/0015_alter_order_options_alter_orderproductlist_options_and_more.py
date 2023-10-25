@@ -1,6 +1,6 @@
 import django.core.validators
-from django.db import migrations, models
 import django.db.models.deletion
+from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
@@ -29,7 +29,9 @@ class Migration(migrations.Migration):
             model_name="order",
             name="number_order",
             field=models.PositiveIntegerField(
-                default=0, editable=False, verbose_name="Номер заказа",
+                default=0,
+                editable=False,
+                verbose_name="Номер заказа",
             ),
         ),
         migrations.AddField(
@@ -47,7 +49,9 @@ class Migration(migrations.Migration):
             model_name="order",
             name="send_to",
             field=models.EmailField(
-                blank=True, max_length=200, verbose_name="Куда прислать",
+                blank=True,
+                max_length=200,
+                verbose_name="Куда прислать",
             ),
         ),
         migrations.AlterField(

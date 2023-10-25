@@ -177,10 +177,9 @@ class Order(TimestampedModel):
     sale_status = models.BooleanField('Скидка', default=False)
     number_order = models.PositiveIntegerField(
         'Номер заказа',
-        # default=get_number_order,
-        default=0,
+        default=get_number_order,
         editable=False,
-        # unique=True,
+        unique=True,
     )
 
     class Meta:
