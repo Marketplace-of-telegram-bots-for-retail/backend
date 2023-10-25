@@ -5,9 +5,17 @@ from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.fields import Base64ImageField
+from core.validators import (
+    validate_cart,
+    validate_order,
+    validate_pay_method,
+    validate_send_to,
+)
 from products.models import (
     Category,
     Favorite,
+    Order,
+    OrderProductList,
     Product,
     Review,
     ShoppingCart,
@@ -279,3 +287,69 @@ class FavoriteSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         context = {'request': request}
         return ProductSerializer(instance.product, context=context).data
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    total_cost = serializers.SerializerMethodField()
+    product_list = ItemSerializer(read_only=True, many=True)
+    send_to = serializers.EmailField(required=False)
+
+    def get_total_cost(self, obj):
+        user = self.context['request'].user
+        cart = ShoppingCart_Items.objects.filter(cart__owner=user)
+        price = sum([item.quantity * item.item.price for item in cart])
+        discount = ShoppingCart.objects.get(owner=user).discount
+        if discount:
+            return int(price - (price * discount) / 100)
+        return price
+
+    def validate(self, data):
+        send_to = validate_send_to(data.get('send_to'), self.context)
+        validate_pay_method(data.get('pay_method'))
+        validate_order(self.context)
+        validate_cart(self.context)
+        data.update(
+            {
+                'send_to': send_to,
+            }
+        )
+        return data
+
+    def create(self, validated_data):
+        user = self.context.get('request').user
+        cart_items = ShoppingCart_Items.objects.filter(
+            cart__owner=user, is_selected=True)
+        order = Order.objects.create(
+            user=user,
+            pay_method=validated_data.get('pay_method'),
+            send_to=validated_data.get('send_to'),
+        )
+        for item in cart_items:
+            OrderProductList.objects.create(
+                order=order, product=item.item, quantity=item.quantity
+            )
+        return order
+
+    class Meta:
+        model = Order
+        fields = (
+            'id',
+            'user',
+            'pay_method',
+            'total_cost',
+            'send_to',
+            'is_paid',
+            'is_active',
+            'number_order',
+            'product_list',
+        )
+        read_only_fields = (
+            'id',
+            'user',
+            'product_list',
+            'is_paid',
+            'is_active',
+            'number_order',
+            'created',
+            'modified',
+        )

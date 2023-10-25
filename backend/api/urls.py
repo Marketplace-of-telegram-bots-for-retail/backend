@@ -18,8 +18,8 @@ router.register(
     ReviewViewSet,
     basename='reviews',
 )
-router.register('orders', OrderViewSet, basename='orders')
 router.register('cart', CartViewSet, basename='cart')
+router.register('orders', OrderViewSet, basename='orders')
 
 urlpatterns = [
     path('', include(router.urls)),

@@ -6,6 +6,11 @@ from django.db import models
 from core.models import TimestampedModel
 from users.models import User
 
+PAY_METHOD_CHOICES = [
+    ('card', 'card'),
+    ('sbp', 'sbp'),
+]
+
 
 def user_directory_path(instance, filename):
     return f'products/{instance.user.id}/{filename}'
@@ -141,6 +146,13 @@ class Review(TimestampedModel):
 
 
 class Order(TimestampedModel):
+    def get_number_order():
+        try:
+            last_order = Order.objects.latest('number_order')
+            return last_order.number_order + 1
+        except Exception:
+            return settings.FIRST_ORDER_NUMBER
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -153,12 +165,26 @@ class Order(TimestampedModel):
         related_name='product_in_order',
         verbose_name='продукт в заказе',
     )
-    is_paid = models.BooleanField('оплачен', default=False)
-    sale_status = models.BooleanField('скидка', default=False)
+    pay_method = models.CharField(
+        'Метод оплаты',
+        max_length=4,
+        choices=PAY_METHOD_CHOICES,
+        blank=True,
+        null=True,
+    )
+    send_to = models.EmailField('Куда прислать', max_length=200, blank=True)
+    is_paid = models.BooleanField('Оплачен', default=False)
+    sale_status = models.BooleanField('Скидка', default=False)
+    number_order = models.PositiveIntegerField(
+        'Номер заказа',
+        default=get_number_order,
+        editable=False,
+        unique=True,
+    )
 
     class Meta:
-        verbose_name = 'заказ'
-        verbose_name_plural = 'заказы'
+        verbose_name = 'Заказ'
+        verbose_name_plural = 'Заказы'
         ordering = ('-created',)
 
     def __str__(self):
@@ -170,23 +196,23 @@ class OrderProductList(models.Model):
         Order,
         on_delete=models.CASCADE,
         related_name='product_in_order',
-        verbose_name='связанные заказы',
+        verbose_name='Связанные заказы',
     )
     product = models.ForeignKey(
         Product,
         on_delete=models.SET_NULL,
         related_name='order_with_product',
-        verbose_name='связанные продукты',
+        verbose_name='Связанные продукты',
         null=True,
     )
     quantity = models.IntegerField(
-        'количество продуктов',
+        'Количество продуктов',
         validators=[MinValueValidator(1)],
     )
 
     class Meta:
-        verbose_name = 'продукт'
-        verbose_name_plural = 'продукты в заказах'
+        verbose_name = 'Продукт'
+        verbose_name_plural = 'Продукты в заказах'
         ordering = ['order']
         constraints = [
             models.UniqueConstraint(
