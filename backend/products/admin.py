@@ -13,6 +13,11 @@ from products.models import (
 )
 
 
+class OrderProductListInline(admin.TabularInline):
+    model = OrderProductList
+    extra = 1
+
+
 @admin.register(Category)
 class CategoryAdmin(BaseAdmin):
     list_display = ('pk', 'name', 'is_active', 'created', 'modified')
@@ -39,7 +44,8 @@ class ProductAdmin(BaseAdmin):
 
 @admin.register(Order)
 class OrderAdmin(BaseAdmin):
-    list_display = ('pk', 'user', 'is_paid', 'sale_status')
+    inlines = (OrderProductListInline,)
+    list_display = ('pk', 'user', 'pay_method', 'is_paid', 'is_active')
 
 
 @admin.register(Review)

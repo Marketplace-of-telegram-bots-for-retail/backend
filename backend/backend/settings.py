@@ -173,6 +173,8 @@ PAGE_SIZE = 9
 
 FIRST_ARTICLE = 100000
 
+FIRST_ORDER_NUMBER = 100000
+
 CSRF_TRUSTED_ORIGINS = [
     'https://botmarketplace.ru',
     'https://80.87.109.115',
