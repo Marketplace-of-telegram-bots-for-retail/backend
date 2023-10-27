@@ -4,6 +4,8 @@ from core.admin import BaseAdmin
 from products.models import (
     Category,
     Favorite,
+    Image,
+    ImageProduct,
     Order,
     OrderProductList,
     Product,
@@ -71,3 +73,13 @@ class ShoppingCart_ItemsAdmin(BaseAdmin):
 @admin.register(Favorite)
 class FavoriteAdmin(BaseAdmin):
     list_display = ('pk', 'user', 'product')
+
+
+@admin.register(Image)
+class ImageAdmin(BaseAdmin):
+    list_display = ('pk', 'image')
+
+
+@admin.register(ImageProduct)
+class ImageProductAdmin(BaseAdmin):
+    list_display = ('pk', 'image', 'product')

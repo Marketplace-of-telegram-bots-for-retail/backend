@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from api.fields import Base64ImageField
+from api.fields import Base64ImageField, ListImagesField
 from core.validators import (
     validate_cart,
     validate_order,
@@ -14,6 +14,8 @@ from core.validators import (
 from products.models import (
     Category,
     Favorite,
+    Image,
+    ImageProduct,
     Order,
     OrderProductList,
     Product,
@@ -30,11 +32,29 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
+class ImageSerializer(serializers.ModelSerializer):
+    image = Base64ImageField(required=False)
+
+    class Meta:
+        model = Image
+        fields = ('id', 'image')
+
+
 class ProductSerializer(serializers.ModelSerializer):
     image_1 = Base64ImageField(required=False)
     image_2 = Base64ImageField(required=False)
     image_3 = Base64ImageField(required=False)
     image_4 = Base64ImageField(required=False)
+    images = ListImagesField(
+        child=Base64ImageField(),
+        required=False,
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='id',
+        queryset=Category.objects.all(),
+        many=True,
+        required=False,
+    )
 
     class Meta:
         model = Product
@@ -47,6 +67,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'image_2',
             'image_3',
             'image_4',
+            'images',
             'video',
             'article',
             'price',
@@ -62,6 +83,30 @@ class ProductSerializer(serializers.ModelSerializer):
             'modified',
         )
 
+    def create(self, validated_data):
+        if 'images' in self.initial_data:
+            images = validated_data.pop('images')
+        if 'category' in self.initial_data:
+            categories = validated_data.pop('category')
+        product = Product.objects.create(**validated_data)
+        if 'images' in self.initial_data:
+            for image in images:
+                current_image = Image.objects.create(
+                    user=product.user,
+                    image=image,
+                )
+                ImageProduct.objects.create(
+                    image=current_image,
+                    product=product,
+                )
+        if 'category' in self.initial_data:
+            product.category.set(categories)
+        return product
+
+    # def to_representation(self, instance):
+    #     representation = super().to_representation(instance)
+    #     return representation
+
 
 class ProductReadOnlySerializer(serializers.ModelSerializer):
     image_1 = Base64ImageField(required=False)
@@ -69,6 +114,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
     image_3 = Base64ImageField(required=False)
     image_4 = Base64ImageField(required=False)
     category = CategorySerializer(many=True)
+    images = ImageSerializer(many=True)
     rating = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -85,6 +131,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             'image_2',
             'image_3',
             'image_4',
+            'images',
             'video',
             'article',
             'price',
