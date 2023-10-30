@@ -9,6 +9,7 @@ from api.views import (
     ReviewViewSet,
     get_min_max_cost,
 )
+from users.views import become_seller, email_verification
 
 router = routers.DefaultRouter()
 router.register('categories', CategoryAPIView, basename='categories')
@@ -23,6 +24,8 @@ router.register('orders', OrderViewSet, basename='orders')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('users/become_seller/', become_seller),
+    path('users/email_verification/', email_verification),
     path('', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
     path('get_min_max_cost/', get_min_max_cost),

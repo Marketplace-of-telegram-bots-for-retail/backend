@@ -12,7 +12,7 @@ from drf_spectacular.utils import (
 )
 from rest_framework import status
 from rest_framework.decorators import action, api_view, permission_classes
-from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import (
     AllowAny,
     IsAuthenticated,
@@ -34,6 +34,7 @@ from api.serializers import (
     ShoppingCartSerializer,
 )
 from backend.settings import PROMOCODE
+from core.filters import NameOrDescriptionFilter
 from core.paginations import Pagination
 from products.models import (
     Category,
@@ -184,11 +185,12 @@ class ProductAPIView(CRUDAPIView):
     pagination_class = Pagination
     permission_classes = (AuthorCanEditAndDelete,)
     filter_backends = (
-        SearchFilter,
         OrderingFilter,
+        DjangoFilterBackend,
     )
-    search_fields = ('^name',)
+    search_fields = ('name', 'description')
     ordering_fields = ('created', 'price')
+    filterset_class = NameOrDescriptionFilter
 
     @staticmethod
     def post_method_for_actions(request, pk, serializers):
@@ -519,7 +521,7 @@ class OrderViewSet(OrderAPIView):
         'нет, то возвращает `null`.'
     ),
     responses={
-        200: OpenApiResponse(
+        status.HTTP_200_OK: OpenApiResponse(
             response={'example': {'price__min': 500, 'price__max': 1000}},
         ),
     },

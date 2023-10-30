@@ -30,6 +30,24 @@ class Category(TimestampedModel):
         return self.name
 
 
+class Image(TimestampedModel):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='пользователь',
+    )
+    image = models.ImageField(
+        'изображение',
+        upload_to=user_directory_path,
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        verbose_name = 'изображение'
+        verbose_name_plural = 'изображения'
+
+
 class Product(TimestampedModel):
     def get_article():
         try:
@@ -73,6 +91,12 @@ class Product(TimestampedModel):
         blank=True,
         null=True,
     )
+    images = models.ManyToManyField(
+        Image,
+        verbose_name='список изображений',
+        blank=True,
+        through='ImageProduct',
+    )
     video = models.TextField(
         'ссылка на видео',
         blank=True,
@@ -101,6 +125,18 @@ class Product(TimestampedModel):
 
     def __str__(self) -> str:
         return self.name
+
+
+class ImageProduct(models.Model):
+    image = models.ForeignKey(Image, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = 'изображение в товаре'
+        verbose_name_plural = 'изображения в товарах'
+
+    def __str__(self) -> str:
+        return f'{self.image} {self.product}'
 
 
 class Review(TimestampedModel):
