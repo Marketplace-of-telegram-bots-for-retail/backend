@@ -103,9 +103,24 @@ class ProductSerializer(serializers.ModelSerializer):
             product.category.set(categories)
         return product
 
-    # def to_representation(self, instance):
-    #     representation = super().to_representation(instance)
-    #     return representation
+    def update(self, instance, validated_data):
+        instance.images.clear()
+        instance.category.clear()
+        if 'images' in self.initial_data:
+            images = validated_data.pop('images')
+            for image in images:
+                current_image = Image.objects.create(
+                    user=instance.user,
+                    image=image,
+                )
+                ImageProduct.objects.create(
+                    image=current_image,
+                    product=instance,
+                )
+        if 'category' in self.initial_data:
+            categories = validated_data.pop('category')
+            instance.category.set(categories)
+        return super().update(instance, validated_data)
 
 
 class ProductReadOnlySerializer(serializers.ModelSerializer):

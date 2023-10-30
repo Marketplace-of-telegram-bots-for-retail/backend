@@ -521,7 +521,7 @@ class OrderViewSet(OrderAPIView):
         'нет, то возвращает `null`.'
     ),
     responses={
-        200: OpenApiResponse(
+        status.HTTP_200_OK: OpenApiResponse(
             response={'example': {'price__min': 500, 'price__max': 1000}},
         ),
     },

@@ -2,12 +2,14 @@ from rest_framework import permissions
 
 
 class AuthorCanEditAndDelete(permissions.BasePermission):
-    def has_object_permission(self, request, view, obj):
-        del view
+    def has_permission(self, request, view):
         return (
-            obj.user == request.user
+            request.user.is_authenticated
             or request.method in permissions.SAFE_METHODS
         )
+
+    def has_object_permission(self, request, view, obj):
+        return obj.user == request.user
 
 
 class IsOwner(permissions.BasePermission):
