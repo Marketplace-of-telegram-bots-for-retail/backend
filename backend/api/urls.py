@@ -24,9 +24,9 @@ router.register('orders', OrderViewSet, basename='orders')
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('users/become_seller/', become_seller),
+    path('users/email_verification/', email_verification),
     path('', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
     path('get_min_max_cost/', get_min_max_cost),
-    path('email_verification/', email_verification),
-    path('become_seller/', become_seller),
 ]
