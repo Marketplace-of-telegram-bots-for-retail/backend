@@ -40,7 +40,7 @@ class ProductAdmin(BaseAdmin):
         'created',
         'modified',
     )
-    list_filter = ('name',)
+    list_filter = ('created', 'modified')
     search_fields = ('name',)
 
 

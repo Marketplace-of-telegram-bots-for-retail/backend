@@ -219,8 +219,8 @@ class Order(TimestampedModel):
     )
 
     class Meta:
-        verbose_name = 'Заказ'
-        verbose_name_plural = 'Заказы'
+        verbose_name = 'заказ'
+        verbose_name_plural = 'заказы'
         ordering = ('-created',)
 
     def __str__(self):
@@ -247,8 +247,8 @@ class OrderProductList(models.Model):
     )
 
     class Meta:
-        verbose_name = 'Продукт'
-        verbose_name_plural = 'Продукты в заказах'
+        verbose_name = 'товар в заказе'
+        verbose_name_plural = 'товары в заказах'
         ordering = ['order']
         constraints = [
             models.UniqueConstraint(
@@ -277,11 +277,12 @@ class ShoppingCart(TimestampedModel):
         verbose_name='Процент скидки',
     )
 
+    class Meta:
+        verbose_name = 'корзина пользователя'
+        verbose_name_plural = 'корзины пользователей'
+
     def __str__(self):
         return f'Корзина пользователя {self.owner.username}'
-
-    class Meta:
-        verbose_name = 'Корзина товаров'
 
 
 class ShoppingCart_Items(models.Model):
@@ -302,12 +303,12 @@ class ShoppingCart_Items(models.Model):
     )
     is_selected = models.BooleanField(default=True, verbose_name='Выбран')
 
+    class Meta:
+        verbose_name = 'товар в корзине'
+        verbose_name_plural = 'товары в корзине'
+
     def __str__(self):
         return f'{self.item.name} в корзине пользователя {self.cart.owner}'
-
-    class Meta:
-        verbose_name = 'Товар в корзине'
-        verbose_name_plural = 'Товары в корзине'
 
 
 class Favorite(TimestampedModel):
