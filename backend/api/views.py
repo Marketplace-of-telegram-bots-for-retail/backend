@@ -72,7 +72,7 @@ class CartViewSet(ReadOnlyModelViewSet):
         '''Ввод промокода для скидки.'''
 
         promocode = request.data.get('promocode')
-        cart = ShoppingCart.objects.get(owner=self.request.user)
+        cart = get_object_or_404(ShoppingCart, owner=self.request.user)
         context = {'request': request, 'promocode': PROMOCODE.get(promocode)}
         serializer = ShoppingCartSerializer(cart, context=context)
         if promocode in PROMOCODE:
