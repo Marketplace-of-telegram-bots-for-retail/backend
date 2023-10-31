@@ -39,7 +39,7 @@ class CustomUserViewSet(UserViewSet):
         'почты не используется.'
     ),
     request={
-        status.HTTP_201_CREATED: OpenApiRequest(
+        status.HTTP_200_OK: OpenApiRequest(
             request={'example': {'email': 'test@test.ru'}},
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiRequest(
@@ -47,7 +47,7 @@ class CustomUserViewSet(UserViewSet):
         ),
     },
     responses={
-        status.HTTP_201_CREATED: OpenApiResponse(
+        status.HTTP_200_OK: OpenApiResponse(
             response={'example': {'email_is_used': False}},
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
@@ -72,7 +72,7 @@ def email_verification(request):
         )
     return Response(
         {'email_is_used': User.objects.filter(email=email).exists()},
-        status=status.HTTP_201_CREATED,
+        status=status.HTTP_200_OK,
     )
 
 
@@ -83,7 +83,7 @@ def email_verification(request):
         'Получить статус продавца для пользователя, который отправил запрос.'
     ),
     request={
-        status.HTTP_200_OK: OpenApiRequest(
+        status.HTTP_201_CREATED: OpenApiRequest(
             request={'example': {'inn': 1111211114}},
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiRequest(
@@ -91,7 +91,7 @@ def email_verification(request):
         ),
     },
     responses={
-        status.HTTP_200_OK: OpenApiResponse(
+        status.HTTP_201_CREATED: OpenApiResponse(
             response={'example': {'id': 1, 'user': 2, 'inn': '1111211114'}},
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
@@ -144,7 +144,7 @@ def become_seller(request):
         )
         serializer.is_valid(raise_exception=True)
         serializer.save(user=request.user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
     try:
         seller = Seller.objects.get(user=request.user)
     except ObjectDoesNotExist:
