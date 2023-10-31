@@ -33,7 +33,6 @@ class ProductAdmin(BaseAdmin):
         'pk',
         'user',
         'name',
-        'description',
         'article',
         'price',
         'is_active',
