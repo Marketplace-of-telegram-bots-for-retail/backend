@@ -1,5 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Avg
+from django.db.models import Avg, Sum
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -300,6 +300,7 @@ class ItemSerializer(serializers.ModelSerializer):
 class ShoppingCartSerializer(serializers.ModelSerializer):
     total_cost = serializers.SerializerMethodField()
     total_amount = serializers.SerializerMethodField()
+    total_quantity = serializers.SerializerMethodField()
     items = ItemSerializer(read_only=True, many=True)
     discount_amount = serializers.SerializerMethodField()
 
@@ -309,6 +310,7 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
             'id',
             'total_cost',
             'total_amount',
+            'total_quantity',
             'discount_amount',
             'discount',
             'items',
@@ -321,6 +323,14 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
     def get_total_amount(self, obj):
         cart = ShoppingCart_Items.objects.filter(cart=obj, is_selected=True)
         return sum([i.quantity for i in cart])
+
+    def get_total_quantity(self, obj):
+        owner = self.context.get('request').user
+        return (
+            ShoppingCart_Items.objects.filter(cart_id=owner.user_cart.id)
+            .aggregate(total_quantity=Sum('quantity'))
+            .get('total_quantity')
+        )
 
     def get_discount_amount(self, obj):
         if obj.discount:
