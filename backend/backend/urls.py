@@ -11,12 +11,10 @@ urlpatterns = [
     path(
         'docs/',
         SpectacularSwaggerView.as_view(
-            template_name='swagger-ui.html',
             url_name='schema',
         ),
         name='swagger-ui',
     ),
-    path('__debug__/', include('debug_toolbar.urls')),
 ]
 
 if settings.DEBUG:
@@ -24,3 +22,6 @@ if settings.DEBUG:
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT,
     )
+    urlpatterns += [
+        path('__debug__/', include('debug_toolbar.urls')),
+    ]
