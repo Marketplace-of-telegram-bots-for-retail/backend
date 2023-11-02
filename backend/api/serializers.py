@@ -325,7 +325,6 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         return sum([i.quantity for i in cart])
 
     def get_total_quantity(self, obj):
-        owner = self.context.get('request').user
         return (
             ShoppingCart_Items.objects.filter(cart=obj)
             .aggregate(total_quantity=Sum('quantity'))
