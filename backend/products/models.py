@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.validators import (
     MaxValueValidator,
-    MinLengthValidator,
+    # MinLengthValidator,
     MinValueValidator,
 )
 from django.db import models
@@ -67,13 +67,14 @@ class Product(TimestampedModel):
     )
     name = models.CharField(
         'название бота',
-        max_length=70,
-        validators=[MinLengthValidator(20)],
+        # max_length=70,
+        max_length=500,
+        # validators=[MinLengthValidator(20)],
     )
     description = models.TextField(
         'описание бота',
         max_length=500,
-        validators=[MinLengthValidator(50)],
+        # validators=[MinLengthValidator(50)],
     )
     images = models.ManyToManyField(
         Image,
