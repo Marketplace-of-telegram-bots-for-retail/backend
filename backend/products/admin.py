@@ -1,6 +1,7 @@
 from django.contrib import admin
 
 from core.admin import BaseAdmin
+from core.utils import cut_string
 from products.models import (
     Category,
     Favorite,
@@ -32,7 +33,7 @@ class ProductAdmin(BaseAdmin):
     list_display = (
         'pk',
         'user',
-        'name',
+        'short_name',
         'article',
         'price',
         'is_active',
@@ -41,6 +42,11 @@ class ProductAdmin(BaseAdmin):
     )
     list_filter = ('created', 'modified')
     search_fields = ('name',)
+
+    def short_name(self, obj):
+        return cut_string(obj.name)
+
+    short_name.short_description = 'название'
 
 
 @admin.register(Order)
@@ -51,7 +57,12 @@ class OrderAdmin(BaseAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(BaseAdmin):
-    list_display = ('pk', 'user', 'product', 'rating', 'text')
+    list_display = ('pk', 'user', 'product', 'rating', 'short_text')
+
+    def short_text(self, obj):
+        return cut_string(obj.text)
+
+    short_text.short_description = 'текст отзыва'
 
 
 @admin.register(OrderProductList)
