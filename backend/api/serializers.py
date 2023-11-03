@@ -1,4 +1,3 @@
-from django.core.exceptions import ObjectDoesNotExist
 from django.db.models import Avg, Sum
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema_field
@@ -40,10 +39,6 @@ class ImageSerializer(serializers.ModelSerializer):
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    image_1 = Base64ImageField(required=False)
-    image_2 = Base64ImageField(required=False)
-    image_3 = Base64ImageField(required=False)
-    image_4 = Base64ImageField(required=False)
     images = ListImagesField(
         child=Base64ImageField(),
         required=False,
@@ -51,8 +46,6 @@ class ProductSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
         slug_field='id',
         queryset=Category.objects.all(),
-        many=True,
-        required=False,
     )
 
     class Meta:
@@ -62,10 +55,6 @@ class ProductSerializer(serializers.ModelSerializer):
             'user',
             'name',
             'description',
-            'image_1',
-            'image_2',
-            'image_3',
-            'image_4',
             'images',
             'video',
             'article',
@@ -78,6 +67,7 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'user',
             'article',
+            'is_active',
             'created',
             'modified',
         )
@@ -85,8 +75,6 @@ class ProductSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         if 'images' in self.initial_data:
             images = validated_data.pop('images')
-        if 'category' in self.initial_data:
-            categories = validated_data.pop('category')
         product = Product.objects.create(**validated_data)
         if 'images' in self.initial_data:
             for image in images:
@@ -98,14 +86,14 @@ class ProductSerializer(serializers.ModelSerializer):
                     image=current_image,
                     product=product,
                 )
-        if 'category' in self.initial_data:
-            product.category.set(categories)
         return product
 
     def update(self, instance, validated_data):
-        instance.images.clear()
-        instance.category.clear()
+        method = self.context['request'].method
+        if method == 'PUT':
+            instance.video = None
         if 'images' in self.initial_data:
+            instance.images.clear()
             images = validated_data.pop('images')
             for image in images:
                 current_image = Image.objects.create(
@@ -116,23 +104,24 @@ class ProductSerializer(serializers.ModelSerializer):
                     image=current_image,
                     product=instance,
                 )
-        if 'category' in self.initial_data:
-            categories = validated_data.pop('category')
-            instance.category.set(categories)
+        elif method == 'PUT':
+            instance.images.clear()
         return super().update(instance, validated_data)
+
+    def validate(self, data):
+        if self.context['request'].user.is_seller is False:
+            raise serializers.ValidationError(
+                {'errors': 'Вы не являетесь продавцом!'},
+            )
+        return data
 
 
 class ProductReadOnlySerializer(serializers.ModelSerializer):
-    image_1 = Base64ImageField(required=False)
-    image_2 = Base64ImageField(required=False)
-    image_3 = Base64ImageField(required=False)
-    image_4 = Base64ImageField(required=False)
-    category = CategorySerializer(many=True)
+    category = CategorySerializer()
     images = ImageSerializer(many=True)
     rating = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
-    count_in_shopping_cart = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -141,10 +130,6 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             'user',
             'name',
             'description',
-            'image_1',
-            'image_2',
-            'image_3',
-            'image_4',
             'images',
             'video',
             'article',
@@ -153,7 +138,6 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             'category',
             'is_favorited',
             'is_in_shopping_cart',
-            'count_in_shopping_cart',
             'is_active',
             'created',
             'modified',
@@ -188,22 +172,6 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             owner=user,
             shoppingcart_items__item=object.id,
         ).exists()
-
-    @extend_schema_field({'type': 'int', 'example': 2})
-    def get_count_in_shopping_cart(self, object):
-        user = self.context.get('request').user
-        if user.is_anonymous:
-            return 0
-        try:
-            return ShoppingCart_Items.objects.get(
-                item=object.id,
-                cart=ShoppingCart.objects.get(
-                    owner=user,
-                    shoppingcart_items__item=object.id,
-                ),
-            ).quantity
-        except ObjectDoesNotExist:
-            return 0
 
 
 class ReviewSerializer(serializers.ModelSerializer):
@@ -256,7 +224,7 @@ class ItemSerializer(serializers.ModelSerializer):
     cost = serializers.SerializerMethodField()
     in_favorite = serializers.SerializerMethodField()
     is_selected = serializers.SerializerMethodField()
-    category = CategorySerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Product
@@ -265,7 +233,6 @@ class ItemSerializer(serializers.ModelSerializer):
             'name',
             'article',
             'description',
-            'image_1',
             'in_favorite',
             'category',
             'price',
@@ -324,9 +291,8 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         return sum([i.quantity for i in cart])
 
     def get_total_quantity(self, obj):
-        owner = self.context.get('request').user
         return (
-            ShoppingCart_Items.objects.filter(cart_id=owner.user_cart.id)
+            ShoppingCart_Items.objects.filter(cart=obj)
             .aggregate(total_quantity=Sum('quantity'))
             .get('total_quantity')
         )

@@ -1,9 +1,14 @@
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import (
+    MaxValueValidator,
+    MinLengthValidator,
+    MinValueValidator,
+)
 from django.db import models
 
 from core.models import TimestampedModel
+from core.utils import cut_string
 from users.models import User
 
 PAY_METHOD_CHOICES = [
@@ -27,7 +32,7 @@ class Category(TimestampedModel):
         verbose_name_plural = 'категории'
 
     def __str__(self) -> str:
-        return self.name
+        return cut_string(self.name)
 
 
 class Image(TimestampedModel):
@@ -62,34 +67,13 @@ class Product(TimestampedModel):
     )
     name = models.CharField(
         'название бота',
-        max_length=200,
+        max_length=70,
+        validators=[MinLengthValidator(20)],
     )
     description = models.TextField(
         'описание бота',
-    )
-    image_1 = models.ImageField(
-        'картинка №1',
-        upload_to=user_directory_path,
-        blank=True,
-        null=True,
-    )
-    image_2 = models.ImageField(
-        'картинка №2',
-        upload_to=user_directory_path,
-        blank=True,
-        null=True,
-    )
-    image_3 = models.ImageField(
-        'картинка №3',
-        upload_to=user_directory_path,
-        blank=True,
-        null=True,
-    )
-    image_4 = models.ImageField(
-        'картинка №4',
-        upload_to=user_directory_path,
-        blank=True,
-        null=True,
+        max_length=500,
+        validators=[MinLengthValidator(50)],
     )
     images = models.ManyToManyField(
         Image,
@@ -110,12 +94,15 @@ class Product(TimestampedModel):
     )
     price = models.PositiveIntegerField(
         'стоимость',
-        validators=[MinValueValidator(1)],
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(100000000),
+        ],
     )
-    category = models.ManyToManyField(
+    category = models.ForeignKey(
         Category,
-        verbose_name='список категорий',
-        blank=True,
+        on_delete=models.PROTECT,
+        verbose_name='категория',
     )
 
     class Meta:
@@ -124,7 +111,7 @@ class Product(TimestampedModel):
         ordering = ('-created',)
 
     def __str__(self) -> str:
-        return self.name
+        return cut_string(self.name)
 
 
 class ImageProduct(models.Model):
@@ -178,7 +165,7 @@ class Review(TimestampedModel):
         ]
 
     def __str__(self):
-        return self.text
+        return cut_string(self.text)
 
 
 class Order(TimestampedModel):

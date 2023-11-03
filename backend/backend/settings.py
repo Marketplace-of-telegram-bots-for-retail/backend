@@ -33,7 +33,6 @@ INSTALLED_APPS = [
     'django_filters',
     'djoser',
     'drf_spectacular',
-    'debug_toolbar',
     'corsheaders',
 ]
 # fmt: on
@@ -47,7 +46,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -92,6 +90,10 @@ else:
             'PORT': config('DB_PORT', default=5432),
         },
     }
+
+if DEBUG:
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -188,3 +190,5 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 PROMOCODE = {'STUDENT_10': 10, 'SCHOOL_20': 20, 'BIRTHDAY_30': 30}
+
+STR_LENGTH = 50
