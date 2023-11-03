@@ -37,7 +37,6 @@ class Migration(migrations.Migration):
             name="description",
             field=models.TextField(
                 max_length=500,
-                validators=[django.core.validators.MinLengthValidator(50)],
                 verbose_name="описание бота",
             ),
         ),
@@ -45,8 +44,7 @@ class Migration(migrations.Migration):
             model_name="product",
             name="name",
             field=models.CharField(
-                max_length=70,
-                validators=[django.core.validators.MinLengthValidator(20)],
+                max_length=500,
                 verbose_name="название бота",
             ),
         ),

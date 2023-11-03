@@ -1,8 +1,7 @@
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.validators import (
+from django.core.validators import (  # MinLengthValidator,
     MaxValueValidator,
-    # MinLengthValidator,
     MinValueValidator,
 )
 from django.db import models
