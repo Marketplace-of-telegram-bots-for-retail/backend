@@ -22,7 +22,7 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from api.mixins import CRUDAPIView, ListRetrieveAPIView, OrderAPIView
-from api.permissions import AuthorCanEditAndDelete, IsOwner
+from api.permissions import AuthorCanEditAndDelete, IsOwner, IsOwnerOrder
 from api.serializers import (
     CategorySerializer,
     FavoriteSerializer,
@@ -470,7 +470,7 @@ class OrderViewSet(OrderAPIView):
     '''Заказы покупателя.'''
 
     serializer_class = OrderSerializer
-    permission_classes = (AuthorCanEditAndDelete,)
+    permission_classes = (IsOwnerOrder,)
     filter_backends = (
         DjangoFilterBackend,
         OrderingFilter,
@@ -512,6 +512,17 @@ class OrderViewSet(OrderAPIView):
             {'message': 'Заказ успешно удален'},
             status=status.HTTP_200_OK,
         )
+
+    @action(detail=True, methods=['patch'])
+    def is_paid(self, request, pk):
+        order = self.get_object()
+        order.is_paid = True
+        order.save()
+        serializer = OrderSerializer(
+            order,
+            context={'request': request},
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @extend_schema(
