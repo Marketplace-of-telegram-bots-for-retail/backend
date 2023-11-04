@@ -330,7 +330,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
     quantity = serializers.SerializerMethodField()
     cost = serializers.SerializerMethodField()
     in_favorite = serializers.SerializerMethodField()
-    category = CategorySerializer(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
 
     def get_quantity(self, obj):
         user = self.context.get('request').user
@@ -356,7 +356,6 @@ class OrderItemSerializer(serializers.ModelSerializer):
             'name',
             'article',
             'description',
-            'image_1',
             'in_favorite',
             'category',
             'price',
@@ -429,6 +428,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'is_paid',
             'is_active',
             'number_order',
+            'created',
             'product_list',
         )
         read_only_fields = (
