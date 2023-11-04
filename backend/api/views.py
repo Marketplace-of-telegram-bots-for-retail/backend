@@ -484,20 +484,6 @@ class OrderViewSet(OrderAPIView):
     def get_serializer_context(self):
         return {'request': self.request}
 
-    def create(self, request):
-        serializer = OrderSerializer(
-            data=request.data,
-            context={'request': request},
-        )
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        else:
-            return Response(
-                serializer.errors,
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
     def destroy(self, request, pk):
         '''Удалить неоплаченный заказ'''
 
