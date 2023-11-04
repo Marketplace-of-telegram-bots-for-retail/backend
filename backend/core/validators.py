@@ -1,6 +1,6 @@
 from django.core.exceptions import ValidationError
 
-from products.models import Order, ShoppingCart_Items
+from products.models import ShoppingCart_Items
 
 
 def validate_pay_method(pay_method):
@@ -17,16 +17,17 @@ def validate_send_to(send_to, context):
     return send_to
 
 
-def validate_order(context):
-    user = context.get('request').user
-    order = Order.objects.filter(user=user, is_paid=False)
-    if order:
-        raise ValidationError(
-            {
-                'message': 'У вас уже есть неоплаченный заказ, оплатите '
-                'или удалите его.',
-            },
-        )
+# def validate_order(context):
+#     user = context.get('request').user
+#     order = Order.objects.filter(user=user, is_paid=False)
+#     if order:
+#         raise ValidationError(
+#             {
+#                 'message': 'У вас уже есть неоплаченный заказ, оплатите '
+#                 'или удалите его.',
+#             },
+#         )
+# Пока убрал ограничение в 1 неоплаченный заказ
 
 
 def validate_cart(context):

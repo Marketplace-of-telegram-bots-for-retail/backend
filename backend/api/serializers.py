@@ -6,7 +6,6 @@ from rest_framework import serializers
 from api.fields import Base64ImageField, ListImagesField
 from core.validators import (
     validate_cart,
-    validate_order,
     validate_pay_method,
     validate_send_to,
 )
@@ -327,24 +326,60 @@ class FavoriteSerializer(serializers.ModelSerializer):
         return ProductSerializer(instance.product, context=context).data
 
 
+class OrderItemSerializer(serializers.ModelSerializer):
+    quantity = serializers.SerializerMethodField()
+    cost = serializers.SerializerMethodField()
+    in_favorite = serializers.SerializerMethodField()
+    category = CategorySerializer(many=True, read_only=True)
+
+    def get_quantity(self, obj):
+        user = self.context.get('request').user
+        instance = self.context.get('instance')
+        item = OrderProductList.objects.get(
+            order__user=user,
+            product=obj,
+            order=instance,
+        )
+        return item.quantity
+
+    def get_cost(self, obj):
+        return obj.price * self.get_quantity(obj)
+
+    def get_in_favorite(self, obj):
+        user = self.context.get('request').user
+        return Favorite.objects.filter(user=user, product=obj).exists()
+
+    class Meta:
+        model = Product
+        fields = (
+            'id',
+            'name',
+            'article',
+            'description',
+            'image_1',
+            'in_favorite',
+            'category',
+            'price',
+            'cost',
+            'quantity',
+        )
+
+
 class OrderSerializer(serializers.ModelSerializer):
-    total_cost = serializers.SerializerMethodField()
-    product_list = ItemSerializer(read_only=True, many=True)
+    product_list = serializers.SerializerMethodField()
     send_to = serializers.EmailField(required=False)
 
-    def get_total_cost(self, obj):
-        user = self.context['request'].user
-        cart = ShoppingCart_Items.objects.filter(cart__owner=user)
-        price = sum([item.quantity * item.item.price for item in cart])
-        discount = ShoppingCart.objects.get(owner=user).discount
-        if discount:
-            return int(price - (price * discount) / 100)
-        return price
+    def get_product_list(self, obj):
+        queryset = Product.objects.filter(order_with_product__order=obj)
+        request = self.context.get('request')
+        context = {'request': request, 'instance': obj}
+        return OrderItemSerializer(queryset, many=True, context=context).data
 
     def validate(self, data):
         send_to = validate_send_to(data.get('send_to'), self.context)
         validate_pay_method(data.get('pay_method'))
-        validate_order(self.context)
+        # validate_order(self.context)
+        # Пока убрал ограничение в 1 неоплаченный заказ
         validate_cart(self.context)
         data.update(
             {
@@ -355,21 +390,32 @@ class OrderSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context.get('request').user
-        cart_items = ShoppingCart_Items.objects.filter(
+        cart = ShoppingCart_Items.objects.filter(
             cart__owner=user,
             is_selected=True,
         )
+        price = sum([item.quantity * item.item.price for item in cart])
+        discount = ShoppingCart.objects.get(owner=user).discount
+        if discount:
+            total_cost = int(price - (price * discount) / 100)
+        else:
+            total_cost = price
         order = Order.objects.create(
             user=user,
             pay_method=validated_data.get('pay_method'),
             send_to=validated_data.get('send_to'),
+            total_cost=total_cost,
         )
-        for item in cart_items:
+        for item in cart:
             OrderProductList.objects.create(
                 order=order,
                 product=item.item,
                 quantity=item.quantity,
             )
+        ShoppingCart_Items.objects.filter(cart__owner=user).delete()
+        user_cart = ShoppingCart.objects.get(owner=user)
+        user_cart.discount = None
+        user_cart.save()
         return order
 
     class Meta:
@@ -389,6 +435,7 @@ class OrderSerializer(serializers.ModelSerializer):
             'id',
             'user',
             'product_list',
+            'total_cost',
             'is_paid',
             'is_active',
             'number_order',
