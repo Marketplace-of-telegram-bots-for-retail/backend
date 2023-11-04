@@ -196,6 +196,7 @@ class Order(TimestampedModel):
         null=True,
     )
     send_to = models.EmailField('Куда прислать', max_length=200, blank=True)
+    total_cost = models.IntegerField('Итоговая цена', blank=True, null=True)
     is_paid = models.BooleanField('Оплачен', default=False)
     sale_status = models.BooleanField('Скидка', default=False)
     number_order = models.PositiveIntegerField(
