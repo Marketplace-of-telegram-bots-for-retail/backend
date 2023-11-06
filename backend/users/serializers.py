@@ -101,12 +101,10 @@ class SellerSerializer(serializers.ModelSerializer):
         read_only_fields = ('user',)
 
     def validate(self, attrs):
-        request = self.context['request']
-        if request.method == 'POST':
-            if Seller.objects.filter(user=request.user).exists():
-                raise serializers.ValidationError(
-                    {'errors': 'Вы уже являетесь продавцом!'},
-                )
+        if Seller.objects.filter(user=self.context['request'].user).exists():
+            raise serializers.ValidationError(
+                {'errors': 'Вы уже являетесь продавцом!'},
+            )
         return super().validate(attrs)
 
     def create(self, validated_data):
@@ -114,3 +112,25 @@ class SellerSerializer(serializers.ModelSerializer):
         user.is_seller = True
         user.save()
         return super().create(validated_data)
+
+
+class SellerUpdateSerializer(serializers.ModelSerializer):
+    '''Сериализатор для обновления данных продавца.'''
+
+    class Meta:
+        model = Seller
+        fields = (
+            'id',
+            'user',
+            'inn',
+            'store_name',
+            'organization_name',
+            'organization_type',
+            'bank_name',
+            'ogrn',
+            'kpp',
+            'bik',
+            'payment_account',
+            'correspondent_account',
+        )
+        read_only_fields = ('user',)

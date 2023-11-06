@@ -12,7 +12,11 @@ from rest_framework.response import Response
 
 from api.permissions import AuthorCanEditAndDelete
 from users.models import Seller, User
-from users.serializers import CustomUserSerializer, SellerSerializer
+from users.serializers import (
+    CustomUserSerializer,
+    SellerSerializer,
+    SellerUpdateSerializer,
+)
 
 
 class CustomUserViewSet(UserViewSet):
@@ -100,8 +104,8 @@ def email_verification(request):
     },
 )
 @extend_schema(
-    methods=['PUT'],
-    summary=('Изменить данные продавца'),
+    methods=['PATCH'],
+    summary=('Изменить данные продавца частично'),
     description=(
         'Изменить данные продавца для пользователя, который отправил запрос.'
     ),
@@ -132,7 +136,7 @@ def email_verification(request):
         status.HTTP_204_NO_CONTENT: OpenApiResponse(),
     },
 )
-@api_view(['POST', 'PUT', 'DELETE'])
+@api_view(['POST', 'PATCH', 'DELETE'])
 @permission_classes([AuthorCanEditAndDelete])
 def become_seller(request):
     '''Получить статус продавца.'''
@@ -152,8 +156,8 @@ def become_seller(request):
             {'errors': 'Вы не являетесь продавцом!'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    if request.method == 'PUT':
-        serializer = SellerSerializer(
+    if request.method == 'PATCH':
+        serializer = SellerUpdateSerializer(
             seller,
             data=request.data,
             context={'request': request},

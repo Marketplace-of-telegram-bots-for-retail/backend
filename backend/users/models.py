@@ -3,6 +3,7 @@ from django.core.validators import RegexValidator
 from django.db import models
 
 from core.models import TimestampedModel
+from users.validators import BANK_NAME, ORGANIZATION_TYPE_CHOICES
 
 
 def user_directory_path(instance, filename):
@@ -79,8 +80,70 @@ class Seller(TimestampedModel):
         verbose_name='пользователь',
     )
     inn = models.CharField(
+        'ИНН',
         max_length=12,
         validators=[RegexValidator(r'^[\d+]{10,12}$')],
+    )
+    store_name = models.CharField(
+        'название магазина',
+        max_length=25,
+        blank=True,
+        null=True,
+    )
+    organization_name = models.CharField(
+        'название организации',
+        max_length=200,
+        blank=True,
+        null=True,
+    )
+    organization_type = models.CharField(
+        'тип организации',
+        max_length=11,
+        choices=ORGANIZATION_TYPE_CHOICES,
+        blank=True,
+        null=True,
+    )
+    bank_name = models.CharField(
+        'название банка',
+        max_length=15,
+        choices=BANK_NAME,
+        blank=True,
+        null=True,
+    )
+    ogrn = models.CharField(
+        'ОГРН',
+        max_length=15,
+        validators=[RegexValidator(r'^[\d+]{13,15}$')],
+        blank=True,
+        null=True,
+    )
+    kpp = models.CharField(
+        'КПП',
+        max_length=9,
+        validators=[RegexValidator(r'^[\d+]{9}$')],
+        blank=True,
+        null=True,
+    )
+    bik = models.CharField(
+        'БИК',
+        max_length=9,
+        validators=[RegexValidator(r'^[\d+]{9}$')],
+        blank=True,
+        null=True,
+    )
+    payment_account = models.CharField(
+        'расчетный счет',
+        max_length=20,
+        validators=[RegexValidator(r'^[\d+]{20}$')],
+        blank=True,
+        null=True,
+    )
+    correspondent_account = models.CharField(
+        'корреспондентский счет',
+        max_length=20,
+        validators=[RegexValidator(r'^[\d+]{20}$')],
+        blank=True,
+        null=True,
     )
 
     class Meta:
