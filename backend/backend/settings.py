@@ -33,7 +33,6 @@ INSTALLED_APPS = [
     'django_filters',
     'djoser',
     'drf_spectacular',
-    'debug_toolbar',
     'corsheaders',
     'social_django',
 ]
@@ -48,7 +47,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
@@ -95,6 +93,10 @@ else:
             'PORT': config('DB_PORT', default=5432),
         },
     }
+
+if DEBUG:
+    INSTALLED_APPS += ['debug_toolbar']
+    MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -176,6 +178,8 @@ PAGE_SIZE = 9
 
 FIRST_ARTICLE = 100000
 
+FIRST_ORDER_NUMBER = 100000
+
 CSRF_TRUSTED_ORIGINS = [
     'https://botmarketplace.ru',
     'https://80.87.109.115',
@@ -218,3 +222,8 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.social_auth.load_extra_data',
     'social_core.pipeline.user.user_details',
 )
+
+
+PROMOCODE = {'STUDENT_10': 10, 'SCHOOL_20': 20, 'BIRTHDAY_30': 30}
+
+STR_LENGTH = 50

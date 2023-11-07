@@ -1,10 +1,20 @@
 from django.conf import settings
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import (
+    MaxValueValidator,
+    MinLengthValidator,
+    MinValueValidator,
+)
 from django.db import models
 
 from core.models import TimestampedModel
+from core.utils import cut_string
 from users.models import User
+
+PAY_METHOD_CHOICES = [
+    ('card', 'card'),
+    ('sbp', 'sbp'),
+]
 
 
 def user_directory_path(instance, filename):
@@ -22,7 +32,25 @@ class Category(TimestampedModel):
         verbose_name_plural = 'категории'
 
     def __str__(self) -> str:
-        return self.name
+        return cut_string(self.name)
+
+
+class Image(TimestampedModel):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='пользователь',
+    )
+    image = models.ImageField(
+        'изображение',
+        upload_to=user_directory_path,
+        blank=True,
+        null=True,
+    )
+
+    class Meta:
+        verbose_name = 'изображение'
+        verbose_name_plural = 'изображения'
 
 
 class Product(TimestampedModel):
@@ -39,34 +67,19 @@ class Product(TimestampedModel):
     )
     name = models.CharField(
         'название бота',
-        max_length=200,
+        max_length=70,
+        validators=[MinLengthValidator(20)],
     )
     description = models.TextField(
         'описание бота',
+        max_length=500,
+        validators=[MinLengthValidator(50)],
     )
-    image_1 = models.ImageField(
-        'картинка №1',
-        upload_to=user_directory_path,
+    images = models.ManyToManyField(
+        Image,
+        verbose_name='список изображений',
         blank=True,
-        null=True,
-    )
-    image_2 = models.ImageField(
-        'картинка №2',
-        upload_to=user_directory_path,
-        blank=True,
-        null=True,
-    )
-    image_3 = models.ImageField(
-        'картинка №3',
-        upload_to=user_directory_path,
-        blank=True,
-        null=True,
-    )
-    image_4 = models.ImageField(
-        'картинка №4',
-        upload_to=user_directory_path,
-        blank=True,
-        null=True,
+        through='ImageProduct',
     )
     video = models.TextField(
         'ссылка на видео',
@@ -81,12 +94,15 @@ class Product(TimestampedModel):
     )
     price = models.PositiveIntegerField(
         'стоимость',
-        validators=[MinValueValidator(1)],
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(100000000),
+        ],
     )
-    category = models.ManyToManyField(
+    category = models.ForeignKey(
         Category,
-        verbose_name='список категорий',
-        blank=True,
+        on_delete=models.PROTECT,
+        verbose_name='категория',
     )
 
     class Meta:
@@ -95,7 +111,19 @@ class Product(TimestampedModel):
         ordering = ('-created',)
 
     def __str__(self) -> str:
-        return self.name
+        return cut_string(self.name)
+
+
+class ImageProduct(models.Model):
+    image = models.ForeignKey(Image, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+
+    class Meta:
+        verbose_name = 'изображение в товаре'
+        verbose_name_plural = 'изображения в товарах'
+
+    def __str__(self) -> str:
+        return f'{self.image} {self.product}'
 
 
 class Review(TimestampedModel):
@@ -137,10 +165,17 @@ class Review(TimestampedModel):
         ]
 
     def __str__(self):
-        return self.text
+        return cut_string(self.text)
 
 
 class Order(TimestampedModel):
+    def get_number_order():
+        try:
+            last_order = Order.objects.latest('number_order')
+            return last_order.number_order + 1
+        except Exception:
+            return settings.FIRST_ORDER_NUMBER
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -153,8 +188,23 @@ class Order(TimestampedModel):
         related_name='product_in_order',
         verbose_name='продукт в заказе',
     )
-    is_paid = models.BooleanField('оплачен', default=False)
-    sale_status = models.BooleanField('скидка', default=False)
+    pay_method = models.CharField(
+        'Метод оплаты',
+        max_length=4,
+        choices=PAY_METHOD_CHOICES,
+        blank=True,
+        null=True,
+    )
+    send_to = models.EmailField('Куда прислать', max_length=200, blank=True)
+    total_cost = models.IntegerField('Итоговая цена', blank=True, null=True)
+    is_paid = models.BooleanField('Оплачен', default=False)
+    sale_status = models.BooleanField('Скидка', default=False)
+    number_order = models.PositiveIntegerField(
+        'Номер заказа',
+        default=get_number_order,
+        editable=False,
+        unique=True,
+    )
 
     class Meta:
         verbose_name = 'заказ'
@@ -170,23 +220,23 @@ class OrderProductList(models.Model):
         Order,
         on_delete=models.CASCADE,
         related_name='product_in_order',
-        verbose_name='связанные заказы',
+        verbose_name='Связанные заказы',
     )
     product = models.ForeignKey(
         Product,
         on_delete=models.SET_NULL,
         related_name='order_with_product',
-        verbose_name='связанные продукты',
+        verbose_name='Связанные продукты',
         null=True,
     )
     quantity = models.IntegerField(
-        'количество продуктов',
+        'Количество продуктов',
         validators=[MinValueValidator(1)],
     )
 
     class Meta:
-        verbose_name = 'продукт'
-        verbose_name_plural = 'продукты в заказах'
+        verbose_name = 'товар в заказе'
+        verbose_name_plural = 'товары в заказах'
         ordering = ['order']
         constraints = [
             models.UniqueConstraint(
@@ -210,13 +260,17 @@ class ShoppingCart(TimestampedModel):
         verbose_name='Владелец корзины',
     )
     items = models.ManyToManyField(Product, through='ShoppingCart_Items')
+    discount = models.PositiveSmallIntegerField(
+        null=True,
+        verbose_name='Процент скидки',
+    )
+
+    class Meta:
+        verbose_name = 'корзина пользователя'
+        verbose_name_plural = 'корзины пользователей'
 
     def __str__(self):
         return f'Корзина пользователя {self.owner.username}'
-
-    class Meta:
-        verbose_name = 'корзина товаров'
-        verbose_name_plural = verbose_name
 
 
 class ShoppingCart_Items(models.Model):
@@ -235,13 +289,14 @@ class ShoppingCart_Items(models.Model):
         default=1,
         verbose_name='Количество товара',
     )
+    is_selected = models.BooleanField(default=True, verbose_name='Выбран')
+
+    class Meta:
+        verbose_name = 'товар в корзине'
+        verbose_name_plural = 'товары в корзине'
 
     def __str__(self):
         return f'{self.item.name} в корзине пользователя {self.cart.owner}'
-
-    class Meta:
-        verbose_name = 'товары в корзине товаров'
-        verbose_name_plural = verbose_name
 
 
 class Favorite(TimestampedModel):

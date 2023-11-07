@@ -1,12 +1,21 @@
-from django.db.models import Avg
+from django.db.models import Avg, Sum
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
-from api.fields import Base64ImageField
+from api.fields import Base64ImageField, ListImagesField
+from core.validators import (
+    validate_cart,
+    validate_pay_method,
+    validate_send_to,
+)
 from products.models import (
     Category,
     Favorite,
+    Image,
+    ImageProduct,
+    Order,
+    OrderProductList,
     Product,
     Review,
     ShoppingCart,
@@ -21,11 +30,23 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = ('id', 'name')
 
 
+class ImageSerializer(serializers.ModelSerializer):
+    image = Base64ImageField(required=False)
+
+    class Meta:
+        model = Image
+        fields = ('id', 'image')
+
+
 class ProductSerializer(serializers.ModelSerializer):
-    image_1 = Base64ImageField(required=False)
-    image_2 = Base64ImageField(required=False)
-    image_3 = Base64ImageField(required=False)
-    image_4 = Base64ImageField(required=False)
+    images = ListImagesField(
+        child=Base64ImageField(),
+        required=False,
+    )
+    category = serializers.SlugRelatedField(
+        slug_field='id',
+        queryset=Category.objects.all(),
+    )
 
     class Meta:
         model = Product
@@ -34,10 +55,7 @@ class ProductSerializer(serializers.ModelSerializer):
             'user',
             'name',
             'description',
-            'image_1',
-            'image_2',
-            'image_3',
-            'image_4',
+            'images',
             'video',
             'article',
             'price',
@@ -49,17 +67,58 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = (
             'user',
             'article',
+            'is_active',
             'created',
             'modified',
         )
 
+    def create(self, validated_data):
+        if 'images' in self.initial_data:
+            images = validated_data.pop('images')
+        product = Product.objects.create(**validated_data)
+        if 'images' in self.initial_data:
+            for image in images:
+                current_image = Image.objects.create(
+                    user=product.user,
+                    image=image,
+                )
+                ImageProduct.objects.create(
+                    image=current_image,
+                    product=product,
+                )
+        return product
+
+    def update(self, instance, validated_data):
+        method = self.context['request'].method
+        if method == 'PUT':
+            instance.video = None
+        if 'images' in self.initial_data:
+            instance.images.clear()
+            images = validated_data.pop('images')
+            for image in images:
+                current_image = Image.objects.create(
+                    user=instance.user,
+                    image=image,
+                )
+                ImageProduct.objects.create(
+                    image=current_image,
+                    product=instance,
+                )
+        elif method == 'PUT':
+            instance.images.clear()
+        return super().update(instance, validated_data)
+
+    def validate(self, data):
+        if self.context['request'].user.is_seller is False:
+            raise serializers.ValidationError(
+                {'errors': 'Вы не являетесь продавцом!'},
+            )
+        return data
+
 
 class ProductReadOnlySerializer(serializers.ModelSerializer):
-    image_1 = Base64ImageField(required=False)
-    image_2 = Base64ImageField(required=False)
-    image_3 = Base64ImageField(required=False)
-    image_4 = Base64ImageField(required=False)
-    category = CategorySerializer(many=True)
+    category = CategorySerializer()
+    images = ImageSerializer(many=True)
     rating = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -71,10 +130,7 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
             'user',
             'name',
             'description',
-            'image_1',
-            'image_2',
-            'image_3',
-            'image_4',
+            'images',
             'video',
             'article',
             'price',
@@ -165,10 +221,25 @@ class ReviewListSerializer(serializers.ModelSerializer):
 
 class ItemSerializer(serializers.ModelSerializer):
     quantity = serializers.SerializerMethodField()
+    cost = serializers.SerializerMethodField()
+    in_favorite = serializers.SerializerMethodField()
+    is_selected = serializers.SerializerMethodField()
+    category = CategorySerializer(read_only=True)
 
     class Meta:
         model = Product
-        fields = ('id', 'name', 'price', 'user', 'quantity', 'category')
+        fields = (
+            'id',
+            'name',
+            'article',
+            'description',
+            'in_favorite',
+            'category',
+            'price',
+            'cost',
+            'quantity',
+            'is_selected',
+        )
 
     def get_quantity(self, obj):
         owner = self.context.get('request').user
@@ -177,23 +248,59 @@ class ItemSerializer(serializers.ModelSerializer):
             cart_id=owner.user_cart.id,
         ).quantity
 
+    def get_cost(self, obj):
+        return obj.price * self.get_quantity(obj)
+
+    def get_in_favorite(self, obj):
+        owner = self.context.get('request').user
+        return Favorite.objects.filter(user=owner, product=obj).exists()
+
+    def get_is_selected(self, obj):
+        owner = self.context.get('request').user
+        return ShoppingCart_Items.objects.get(
+            item=obj,
+            cart_id=owner.user_cart.id,
+        ).is_selected
+
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
     total_cost = serializers.SerializerMethodField()
     total_amount = serializers.SerializerMethodField()
+    total_quantity = serializers.SerializerMethodField()
     items = ItemSerializer(read_only=True, many=True)
+    discount_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = ShoppingCart
-        fields = ('id', 'total_cost', 'total_amount', 'items')
+        fields = (
+            'id',
+            'total_cost',
+            'total_amount',
+            'total_quantity',
+            'discount_amount',
+            'discount',
+            'items',
+        )
 
     def get_total_cost(self, obj):
-        cart = ShoppingCart_Items.objects.filter(cart=obj)
+        cart = ShoppingCart_Items.objects.filter(cart=obj, is_selected=True)
         return sum([item.quantity * item.item.price for item in cart])
 
     def get_total_amount(self, obj):
-        cart = ShoppingCart_Items.objects.filter(cart=obj)
+        cart = ShoppingCart_Items.objects.filter(cart=obj, is_selected=True)
         return sum([i.quantity for i in cart])
+
+    def get_total_quantity(self, obj):
+        return (
+            ShoppingCart_Items.objects.filter(cart=obj)
+            .aggregate(total_quantity=Sum('quantity'))
+            .get('total_quantity')
+        )
+
+    def get_discount_amount(self, obj):
+        if obj.discount:
+            total_cost = self.get_total_cost(obj)
+            return int(total_cost - (total_cost / 100 * obj.discount))
 
 
 class FavoriteSerializer(serializers.ModelSerializer):
@@ -217,3 +324,121 @@ class FavoriteSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         context = {'request': request}
         return ProductSerializer(instance.product, context=context).data
+
+
+class OrderItemSerializer(serializers.ModelSerializer):
+    quantity = serializers.SerializerMethodField()
+    cost = serializers.SerializerMethodField()
+    in_favorite = serializers.SerializerMethodField()
+    category = CategorySerializer(read_only=True)
+
+    def get_quantity(self, obj):
+        user = self.context.get('request').user
+        instance = self.context.get('instance')
+        item = OrderProductList.objects.get(
+            order__user=user,
+            product=obj,
+            order=instance,
+        )
+        return item.quantity
+
+    def get_cost(self, obj):
+        return obj.price * self.get_quantity(obj)
+
+    def get_in_favorite(self, obj):
+        user = self.context.get('request').user
+        return Favorite.objects.filter(user=user, product=obj).exists()
+
+    class Meta:
+        model = Product
+        fields = (
+            'id',
+            'name',
+            'article',
+            'description',
+            'in_favorite',
+            'category',
+            'price',
+            'cost',
+            'quantity',
+        )
+
+
+class OrderSerializer(serializers.ModelSerializer):
+    product_list = serializers.SerializerMethodField()
+    send_to = serializers.EmailField(required=False)
+
+    def get_product_list(self, obj):
+        queryset = Product.objects.filter(order_with_product__order=obj)
+        request = self.context.get('request')
+        context = {'request': request, 'instance': obj}
+        return OrderItemSerializer(queryset, many=True, context=context).data
+
+    def validate(self, data):
+        send_to = validate_send_to(data.get('send_to'), self.context)
+        validate_pay_method(data.get('pay_method'))
+        # validate_order(self.context)
+        # Пока убрал ограничение в 1 неоплаченный заказ
+        validate_cart(self.context)
+        data.update(
+            {
+                'send_to': send_to,
+            },
+        )
+        return data
+
+    def create(self, validated_data):
+        user = self.context.get('request').user
+        cart = ShoppingCart_Items.objects.filter(
+            cart__owner=user,
+            is_selected=True,
+        )
+        price = sum([item.quantity * item.item.price for item in cart])
+        discount = ShoppingCart.objects.get(owner=user).discount
+        if discount:
+            total_cost = int(price - (price * discount) / 100)
+        else:
+            total_cost = price
+        order = Order.objects.create(
+            user=user,
+            pay_method=validated_data.get('pay_method'),
+            send_to=validated_data.get('send_to'),
+            total_cost=total_cost,
+        )
+        for item in cart:
+            OrderProductList.objects.create(
+                order=order,
+                product=item.item,
+                quantity=item.quantity,
+            )
+        ShoppingCart_Items.objects.filter(cart__owner=user).delete()
+        user_cart = ShoppingCart.objects.get(owner=user)
+        user_cart.discount = None
+        user_cart.save()
+        return order
+
+    class Meta:
+        model = Order
+        fields = (
+            'id',
+            'user',
+            'pay_method',
+            'total_cost',
+            'send_to',
+            'is_paid',
+            'is_active',
+            'number_order',
+            'created',
+            'product_list',
+        )
+        read_only_fields = (
+            'id',
+            'user',
+            'product_list',
+            'total_cost',
+            'is_paid',
+            'is_active',
+            'number_order',
+            'created',
+            'modified',
+        )

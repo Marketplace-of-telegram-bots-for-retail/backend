@@ -1,7 +1,7 @@
 from django.contrib import admin
 
 from core.admin import BaseAdmin
-from users.models import User
+from users.models import Seller, User
 
 
 @admin.register(User)
@@ -19,3 +19,8 @@ class UserAdmin(BaseAdmin):
         'created',
         'modified',
     )
+
+
+@admin.register(Seller)
+class SellerAdmin(BaseAdmin):
+    list_display = ('pk', 'user', 'inn')

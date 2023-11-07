@@ -1,39 +1,45 @@
 from functools import reduce
 from operator import or_
 
-from django.db.models import F, Q
+from django.db.models import F, Max, Min, Q
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import (
     OpenApiParameter,
+    OpenApiResponse,
     extend_schema,
     extend_schema_view,
 )
 from rest_framework import status
-from rest_framework.decorators import action
-from rest_framework.filters import OrderingFilter, SearchFilter
+from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import (
+    AllowAny,
     IsAuthenticated,
     IsAuthenticatedOrReadOnly,
 )
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
-from api.mixins import CRUDAPIView, ListRetrieveAPIView
-from api.permissions import AuthorCanEditAndDelete, IsOwner
+from api.mixins import CRUDAPIView, ListRetrieveAPIView, OrderAPIView
+from api.permissions import AuthorCanEditAndDelete, IsOwner, IsOwnerOrder
 from api.serializers import (
     CategorySerializer,
     FavoriteSerializer,
-    ItemSerializer,
+    OrderSerializer,
     ProductReadOnlySerializer,
     ProductSerializer,
     ReviewListSerializer,
     ReviewSerializer,
     ShoppingCartSerializer,
 )
+from backend.settings import PROMOCODE
+from core.filters import NameOrDescriptionFilter
 from core.paginations import Pagination
 from products.models import (
     Category,
     Favorite,
+    Order,
     Product,
     Review,
     ShoppingCart,
@@ -60,6 +66,24 @@ class CartViewSet(ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return ShoppingCart.objects.filter(owner=self.request.user)
+
+    @action(methods=['post'], detail=False, permission_classes=(IsOwner,))
+    def promocode(self, request, *args, **kwargs):
+        '''Ввод промокода для скидки.'''
+
+        promocode = request.data.get('promocode')
+        cart = get_object_or_404(ShoppingCart, owner=self.request.user)
+        context = {'request': request, 'promocode': PROMOCODE.get(promocode)}
+        serializer = ShoppingCartSerializer(cart, context=context)
+        if promocode in PROMOCODE:
+            cart.discount = PROMOCODE[promocode]
+            cart.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        else:
+            return Response(
+                'Некорректный промокод',
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
 
 @extend_schema_view(
@@ -161,11 +185,12 @@ class ProductAPIView(CRUDAPIView):
     pagination_class = Pagination
     permission_classes = (AuthorCanEditAndDelete,)
     filter_backends = (
-        SearchFilter,
         OrderingFilter,
+        DjangoFilterBackend,
     )
-    search_fields = ('^name',)
+    search_fields = ('name', 'description')
     ordering_fields = ('created', 'price')
+    filterset_class = NameOrDescriptionFilter
 
     @staticmethod
     def post_method_for_actions(request, pk, serializers):
@@ -251,15 +276,15 @@ class ProductAPIView(CRUDAPIView):
         permission_classes=(IsOwner,),
     )
     def shopping_cart(self, request, *args, **kwargs):
-        '''Добавление и удаление товара из корзины.'''
+        '''Добавление товара в корзину.'''
 
         product = get_object_or_404(Product, id=kwargs.get('pk'))
         shopping_cart, created = ShoppingCart.objects.get_or_create(
             owner=request.user,
         )
+        context = {'request': request}
+        serializer = ShoppingCartSerializer(shopping_cart, context=context)
         if request.method == 'POST':
-            context = {'request': request}
-            _ = ItemSerializer(context=context)
             cart_item, created = ShoppingCart_Items.objects.get_or_create(
                 cart=shopping_cart,
                 item=product,
@@ -268,12 +293,12 @@ class ProductAPIView(CRUDAPIView):
                 cart_item.quantity = F('quantity') + 1
                 cart_item.save()
                 return Response(
-                    f'Вы успешно увеличили количество товара {product} на 1.',
+                    serializer.data,
                     status=status.HTTP_201_CREATED,
                 )
             else:
                 return Response(
-                    f'Вы успешно добавили товар {product} в корзину.',
+                    serializer.data,
                     status=status.HTTP_201_CREATED,
                 )
 
@@ -288,10 +313,7 @@ class ProductAPIView(CRUDAPIView):
                 cart=shopping_cart,
             ).exists():
                 ShoppingCart.objects.get(owner=request.user).delete()
-            return Response(
-                f'Товар удален из корзины пользователя {self.request.user}',
-                status=status.HTTP_204_NO_CONTENT,
-            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
         if request.method == 'PATCH':
             cart_item = get_object_or_404(
@@ -304,12 +326,67 @@ class ProductAPIView(CRUDAPIView):
                 cart_item.save()
             else:
                 return Response(
-                    f'Нельзя удалить товар {product} таким образом.',
+                    f'Нельзя удалить товар {product} данным способом.',
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-            return Response(
-                f'Вы успешно уменьшили кол-во товара {product} на 1.',
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=['patch'], detail=True, permission_classes=(IsOwner,))
+    def select(self, request, *args, **kwargs):
+        '''Выбор элемента в корзине.'''
+
+        product = get_object_or_404(Product, id=kwargs.get('pk'))
+        shopping_cart, _ = ShoppingCart.objects.get_or_create(
+            owner=request.user,
+        )
+        context = {'request': request}
+        serializer = ShoppingCartSerializer(shopping_cart, context=context)
+        if request.method == 'PATCH':
+            ShoppingCart_Items.objects.filter(
+                item=product,
+                cart=shopping_cart,
+            ).update(is_selected=~F('is_selected'))
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(
+        methods=['patch', 'delete'],
+        detail=False,
+        permission_classes=(IsOwner,),
+    )
+    def select_all(self, request, *args, **kwargs):
+        '''Выбор всех элементов в корзине.'''
+
+        shopping_cart, created = ShoppingCart.objects.get_or_create(
+            owner=request.user,
+        )
+        context = {'request': request}
+        serializer = ShoppingCartSerializer(shopping_cart, context=context)
+        if request.method == 'PATCH':
+            ShoppingCart_Items.objects.filter(cart=shopping_cart).update(
+                is_selected=True,
             )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.method == 'DELETE':
+            ShoppingCart_Items.objects.filter(cart=shopping_cart).update(
+                is_selected=False,
+            )
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(methods=['delete'], detail=False, permission_classes=(IsOwner,))
+    def delete_all_selected(self, request, *args, **kwargs):
+        '''Удаление всех выбранных элементов в корзине.'''
+
+        shopping_cart = ShoppingCart.objects.get(owner=request.user)
+        context = {'request': request}
+        serializer = ShoppingCartSerializer(shopping_cart, context=context)
+        ShoppingCart_Items.objects.filter(
+            cart=shopping_cart,
+            is_selected=True,
+        ).delete()
+        if not ShoppingCart_Items.objects.filter(cart=shopping_cart).exists():
+            shopping_cart.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @extend_schema_view(
@@ -362,59 +439,94 @@ class ReviewViewSet(ModelViewSet):
 
 @extend_schema_view(
     list=extend_schema(
-        summary='Получить список заказов (в разработке)',
-        description=('Не работает.'),
+        summary='Получить список заказов',
+        description=('Возвращает список заказов текущего пользователя'),
+        parameters=[
+            OpenApiParameter(
+                name='is_paid',
+                description=(
+                    'При is_paid=True выводит все оплаченные заказы. '
+                    'При is_paid=False выводит все неоплаченные заказы.'
+                ),
+                required=False,
+                type=str,
+            ),
+        ],
     ),
     create=extend_schema(
-        summary='Создать заказ (в разработке)',
-        description=('Не работает.'),
+        summary='Создать заказ.',
+        description=('Создаёт заказ из текущей корзины пользователя'),
     ),
     retrieve=extend_schema(
-        summary='Получить данные конкретного заказа (в разработке)',
-        description=('Не работает.'),
-    ),
-    update=extend_schema(
-        summary='Обновить данные заказа целиком (в разработке)',
-        description=('Не работает.'),
-    ),
-    partial_update=extend_schema(
-        summary='Обновить данные заказа частично (в разработке)',
-        description=('Не работает.'),
+        summary='Получить данные конкретного заказа',
+        description=('Возаращает данные конкретного заказа'),
     ),
     destroy=extend_schema(
-        summary='Удалить заказ (в разработке)',
-        description=('Не работает.'),
+        summary='Удалить заказ',
+        description=('Удаляет заказ.'),
     ),
 )
-class OrderViewSet(ModelViewSet):
-    '''Заказы.'''
+class OrderViewSet(OrderAPIView):
+    '''Заказы покупателя.'''
 
-    def list(self, request, *args, **kwargs):
-        '''Получить список заказов (в разработке).'''
+    serializer_class = OrderSerializer
+    permission_classes = (IsOwnerOrder,)
+    filter_backends = (
+        DjangoFilterBackend,
+        OrderingFilter,
+    )
+    filterset_fields = ('is_paid',)
+    ordering_fields = 'created'
 
-        return Response({'message': 'в разработке'})
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)
 
-    def create(self, request, *args, **kwargs):
-        '''Создать заказ (в разработке).'''
+    def get_serializer_context(self):
+        return {'request': self.request}
 
-        return Response({'message': 'в разработке'})
+    def destroy(self, request, pk):
+        '''Удалить неоплаченный заказ'''
 
-    def retrieve(self, request, *args, **kwargs):
-        '''Получить данные конкретного заказа (в разработке).'''
+        order = get_object_or_404(
+            Order,
+            user=request.user,
+            is_paid=False,
+            id=pk,
+        )
+        order.delete()
+        return Response(
+            {'message': 'Заказ успешно удален'},
+            status=status.HTTP_200_OK,
+        )
 
-        return Response({'message': 'в разработке'})
+    @action(detail=True, methods=['patch'])
+    def is_paid(self, request, pk):
+        order = self.get_object()
+        order.is_paid = True
+        order.save()
+        serializer = OrderSerializer(
+            order,
+            context={'request': request},
+        )
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def update(self, request, *args, **kwargs):
-        '''Обновить данные заказа целиком (в разработке).'''
 
-        return Response({'message': 'в разработке'})
-
-    def partial_update(self, request, *args, **kwargs):
-        '''Обновить данные заказа частично (в разработке).'''
-
-        return Response({'message': 'в разработке'})
-
-    def destroy(self, request, *args, **kwargs):
-        '''Удалить заказ (в разработке).'''
-
-        return Response({'message': 'в разработке'})
+@extend_schema(
+    summary='Получить минимальную и максимальную стоимость бота',
+    description=(
+        'Возвращает минимальную и максимальную стоимость бота. Если данных '
+        'нет, то возвращает `null`.'
+    ),
+    responses={
+        status.HTTP_200_OK: OpenApiResponse(
+            response={'example': {'price__min': 500, 'price__max': 1000}},
+        ),
+    },
+)
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_min_max_cost(request):
+    return Response(
+        Product.objects.all().aggregate(Min('price'), Max('price')),
+        status=status.HTTP_200_OK,
+    )

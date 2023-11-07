@@ -4,6 +4,7 @@ from djoser.serializers import UserCreateSerializer, UserSerializer
 from rest_framework import serializers
 
 from api.fields import Base64ImageField
+from users.models import Seller
 
 User = get_user_model()
 
@@ -89,3 +90,27 @@ class CustomUserCreatePasswordRetypeSerializer(CustomUserCreateSerializer):
             return attrs
         else:
             self.fail('password_mismatch')
+
+
+class SellerSerializer(serializers.ModelSerializer):
+    '''Сериализатор для получения статуса продавца.'''
+
+    class Meta:
+        model = Seller
+        fields = ('id', 'user', 'inn')
+        read_only_fields = ('user',)
+
+    def validate(self, attrs):
+        request = self.context['request']
+        if request.method == 'POST':
+            if Seller.objects.filter(user=request.user).exists():
+                raise serializers.ValidationError(
+                    {'errors': 'Вы уже являетесь продавцом!'},
+                )
+        return super().validate(attrs)
+
+    def create(self, validated_data):
+        user = User.objects.get(pk=self.context['request'].user.id)
+        user.is_seller = True
+        user.save()
+        return super().create(validated_data)

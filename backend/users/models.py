@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.validators import RegexValidator
 from django.db import models
 
 from core.models import TimestampedModel
@@ -67,3 +68,25 @@ class User(AbstractUser, TimestampedModel):
 
     def __str__(self):
         return self.email
+
+
+class Seller(TimestampedModel):
+    '''Модель продавца.'''
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name='пользователь',
+    )
+    inn = models.CharField(
+        max_length=12,
+        validators=[RegexValidator(r'^[\d+]{10,12}$')],
+    )
+
+    class Meta:
+        verbose_name = 'продавец'
+        verbose_name_plural = 'продавцы'
+        ordering = ('-created',)
+
+    def __str__(self):
+        return self.user.email
