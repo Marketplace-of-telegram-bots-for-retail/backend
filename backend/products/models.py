@@ -146,6 +146,7 @@ class Review(TimestampedModel):
     )
     text = models.TextField(
         'текст отзыва',
+        validators=[MinLengthValidator(6)],
         max_length=500,
         blank=True,
     )
