@@ -28,5 +28,6 @@ urlpatterns = [
     path('users/email_verification/', email_verification),
     path('', include('djoser.urls')),
     path('auth/', include('djoser.urls.authtoken')),
+    path('oauth/', include('social_django.urls', namespace='social')),
     path('get_min_max_cost/', get_min_max_cost),
 ]

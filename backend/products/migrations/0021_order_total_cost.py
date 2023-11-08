@@ -14,7 +14,9 @@ class Migration(migrations.Migration):
             model_name="order",
             name="total_cost",
             field=models.IntegerField(
-                blank=True, null=True, verbose_name="Итоговая цена",
+                blank=True,
+                null=True,
+                verbose_name="Итоговая цена",
             ),
         ),
     ]
