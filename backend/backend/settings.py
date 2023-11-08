@@ -223,7 +223,6 @@ SOCIAL_AUTH_PIPELINE = (
     'social_core.pipeline.user.user_details',
 )
 
-
 PROMOCODE = {'STUDENT_10': 10, 'SCHOOL_20': 20, 'BIRTHDAY_30': 30}
 
 STR_LENGTH = 50
