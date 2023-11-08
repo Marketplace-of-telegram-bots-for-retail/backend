@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     'djoser',
     'drf_spectacular',
     'corsheaders',
+    'social_django',
 ]
 # fmt: on
 
@@ -65,6 +66,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
             ],
         },
     },
@@ -188,6 +191,38 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'https://marketplace-of-telegram-bots-for-retail.github.io',
 ]
+
+# VK auth settings
+
+SOCIAL_AUTH_VK_OAUTH2_KEY = 'here-is-vk-app-key'
+SOCIAL_AUTH_VK_OAUTH2_SECRET = 'here-is-vk-app-secret'
+
+SOCIAL_AUTH_VK_OAUTH2_SCOPE = ['email']
+SOCIAL_AUTH_ADMIN_USER_SEARCH_FIELDS = ['email']
+
+# Yandex auth settings
+
+SOCIAL_AUTH_YANDEX_OAUTH2_KEY = 'here-is-yandex-app-key'
+SOCIAL_AUTH_YANDEX_OAUTH2_SECRET = 'here-is-yandex-app-secret'
+
+# Social-Auth-App-Django
+
+AUTHENTICATION_BACKENDS = [
+    'social_core.backends.vk.VKOAuth2',
+    'social_core.backends.yandex.YandexOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+SOCIAL_AUTH_PIPELINE = (
+    'social_core.pipeline.social_auth.social_details',
+    'social_core.pipeline.social_auth.social_uid',
+    'social_core.pipeline.social_auth.social_user',
+    'social_core.pipeline.user.create_user',
+    'social_core.pipeline.social_auth.associate_user',
+    'social_core.pipeline.social_auth.load_extra_data',
+    'social_core.pipeline.user.user_details',
+)
+
 
 PROMOCODE = {'STUDENT_10': 10, 'SCHOOL_20': 20, 'BIRTHDAY_30': 30}
 
