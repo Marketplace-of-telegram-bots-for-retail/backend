@@ -1,9 +1,16 @@
-from django.db.models import Avg, Sum
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from api.fields import Base64ImageField, ListImagesField
+from core.utils import (
+    check_is_buying,
+    check_is_favorited,
+    check_is_in_shopping_cart,
+    find_rating,
+)
 from core.validators import (
     validate_cart,
     validate_pay_method,
@@ -21,6 +28,7 @@ from products.models import (
     ShoppingCart,
     ShoppingCart_Items,
 )
+from users.models import Seller
 from users.serializers import CustomUserSerializer
 
 
@@ -116,7 +124,7 @@ class ProductSerializer(serializers.ModelSerializer):
         return data
 
 
-class ProductReadOnlySerializer(serializers.ModelSerializer):
+class ProductListSerializer(serializers.ModelSerializer):
     category = CategorySerializer()
     images = ImageSerializer(many=True)
     rating = serializers.SerializerMethodField()
@@ -145,33 +153,87 @@ class ProductReadOnlySerializer(serializers.ModelSerializer):
 
     @extend_schema_field({'example': [4.5, 2]})
     def get_rating(self, object):
-        review = Review.objects.filter(product=object.id)
-        if review.exists():
-            return [
-                round(review.aggregate(Avg('rating'))['rating__avg'], 1),
-                review.count(),
-            ]
-        return [None, None]
+        return find_rating(object.id)
 
-    @extend_schema_field({'type': 'boolean', 'example': False})
+    @extend_schema_field({'type': 'boolean', 'example': True})
     def get_is_favorited(self, object):
-        user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return Favorite.objects.filter(
-            user=user,
-            product=object.id,
-        ).exists()
+        return check_is_favorited(self.context.get('request').user, object.id)
 
     @extend_schema_field({'type': 'boolean', 'example': False})
     def get_is_in_shopping_cart(self, object):
-        user = self.context.get('request').user
-        if user.is_anonymous:
-            return False
-        return ShoppingCart.objects.filter(
-            owner=user,
-            shoppingcart_items__item=object.id,
-        ).exists()
+        return check_is_in_shopping_cart(
+            self.context.get('request').user,
+            object.id,
+        )
+
+
+class ProductRetrieveSerializer(serializers.ModelSerializer):
+    category = CategorySerializer()
+    images = ImageSerializer(many=True)
+    rating = serializers.SerializerMethodField()
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
+    is_buying = serializers.SerializerMethodField()
+    logo = serializers.SerializerMethodField()
+    store_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = (
+            'id',
+            'user',
+            'name',
+            'description',
+            'images',
+            'video',
+            'article',
+            'price',
+            'rating',
+            'category',
+            'is_favorited',
+            'is_in_shopping_cart',
+            'is_buying',
+            'logo',
+            'store_name',
+            'is_active',
+            'created',
+            'modified',
+        )
+
+    @extend_schema_field({'example': [4.5, 2]})
+    def get_rating(self, object):
+        return find_rating(object.id)
+
+    @extend_schema_field({'type': 'boolean', 'example': True})
+    def get_is_favorited(self, object):
+        return check_is_favorited(self.context.get('request').user, object.id)
+
+    @extend_schema_field({'type': 'boolean', 'example': False})
+    def get_is_in_shopping_cart(self, object):
+        return check_is_in_shopping_cart(
+            self.context.get('request').user,
+            object.id,
+        )
+
+    @extend_schema_field({'type': 'boolean', 'example': True})
+    def get_is_buying(self, object):
+        return check_is_buying(self.context.get('request').user, object.id)
+
+    @extend_schema_field({'type': 'string', 'example': 'string'})
+    def get_store_name(self, object):
+        try:
+            return Seller.objects.get(user=object.user).store_name
+        except ObjectDoesNotExist:
+            return None
+
+    @extend_schema_field({'type': 'string', 'example': 'string'})
+    def get_logo(self, object):
+        try:
+            return self.context.get('request').build_absolute_uri(
+                Seller.objects.get(user=object.user).logo.url,
+            )
+        except (ObjectDoesNotExist, ValueError):
+            return None
 
 
 class ReviewSerializer(serializers.ModelSerializer):

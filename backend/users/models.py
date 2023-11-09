@@ -10,6 +10,10 @@ def user_directory_path(instance, filename):
     return f'users/{instance.id}/{filename}'
 
 
+def seller_directory_path(instance, filename):
+    return f'sellers/{instance.id}/{filename}'
+
+
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
         if not email:
@@ -82,15 +86,29 @@ class Seller(TimestampedModel):
     inn = models.CharField(
         'ИНН',
         max_length=12,
-        validators=[RegexValidator(r'^[\d+]{10,12}$')],
+        validators=[
+            RegexValidator(
+                r'^[\d]{10}$|^[\d]{12}$',
+                message=(
+                    'ИНН состоит из 10 цифр для юридического лица или 12 цифр '
+                    'для физического лица!'
+                ),
+            ),
+        ],
     )
-    store_name = models.CharField(
+    logo = models.ImageField(
+        verbose_name='логотип магазина',
+        upload_to=seller_directory_path,
+        blank=True,
+        null=True,
+    )
+    store_name = models.TextField(
         'название магазина',
         max_length=25,
         blank=True,
         null=True,
     )
-    organization_name = models.CharField(
+    organization_name = models.TextField(
         'название организации',
         max_length=200,
         blank=True,
@@ -113,35 +131,57 @@ class Seller(TimestampedModel):
     ogrn = models.CharField(
         'ОГРН',
         max_length=15,
-        validators=[RegexValidator(r'^[\d+]{13,15}$')],
+        validators=[
+            RegexValidator(
+                r'^[\d]{13}$|^[\d]{15}$',
+                message=(
+                    'ОГРН состоит из 13 цифр для юридического лица или '
+                    '15 цифр для ИП!'
+                ),
+            ),
+        ],
         blank=True,
         null=True,
     )
     kpp = models.CharField(
         'КПП',
         max_length=9,
-        validators=[RegexValidator(r'^[\d+]{9}$')],
+        validators=[
+            RegexValidator(r'^[\d]{9}$', message='КПП состоит из 9 цифр!'),
+        ],
         blank=True,
         null=True,
     )
     bik = models.CharField(
         'БИК',
         max_length=9,
-        validators=[RegexValidator(r'^[\d+]{9}$')],
+        validators=[
+            RegexValidator(r'^[\d]{9}$', message='БИК состоит из 9 цифр!'),
+        ],
         blank=True,
         null=True,
     )
     payment_account = models.CharField(
         'расчетный счет',
         max_length=20,
-        validators=[RegexValidator(r'^[\d+]{20}$')],
+        validators=[
+            RegexValidator(
+                r'^[\d]{20}$',
+                message='Расчетный счет состоит из 20 цифр!',
+            ),
+        ],
         blank=True,
         null=True,
     )
     correspondent_account = models.CharField(
         'корреспондентский счет',
         max_length=20,
-        validators=[RegexValidator(r'^[\d+]{20}$')],
+        validators=[
+            RegexValidator(
+                r'^[\d]{20}$',
+                message='Корреспондентский счет состоит из 20 цифр!',
+            ),
+        ],
         blank=True,
         null=True,
     )

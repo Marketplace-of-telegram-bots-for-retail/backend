@@ -1,7 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from djoser.views import UserViewSet
 from drf_spectacular.utils import (
-    OpenApiRequest,
+    OpenApiParameter,
     OpenApiResponse,
     extend_schema,
 )
@@ -14,6 +14,7 @@ from api.permissions import AuthorCanEditAndDelete
 from users.models import Seller, User
 from users.serializers import (
     CustomUserSerializer,
+    EmailSerializer,
     SellerSerializer,
     SellerUpdateSerializer,
 )
@@ -38,44 +39,53 @@ class CustomUserViewSet(UserViewSet):
 @extend_schema(
     summary=('Проверка на наличие пользователя с предоставленным email'),
     description=(
-        'Возвращает `True`, если адрес электронной почты занят '
-        'другим пользователем и `False`, если адрес электронной '
-        'почты не используется.'
+        'Возвращает: `пользователь с таким адрес электронной почты уже '
+        'существует.`, если адрес электронной почты занят другим '
+        'пользователем и `False`, если адрес электронной почты не '
+        'используется.'
     ),
-    request={
-        status.HTTP_200_OK: OpenApiRequest(
-            request={'example': {'email': 'test@test.ru'}},
+    parameters=[
+        OpenApiParameter(
+            name='email',
+            description=('Проверяемый email.'),
+            required=True,
+            type=str,
         ),
-        status.HTTP_400_BAD_REQUEST: OpenApiRequest(
-            request={'example': {}},
-        ),
-    },
+    ],
+    request=EmailSerializer,
     responses={
         status.HTTP_200_OK: OpenApiResponse(
-            response={'example': {'email_is_used': False}},
+            response={'example': {'email': False}},
         ),
         status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            response={'example': {'email': ['Обязательное поле.']}},
+            response={
+                'example': {
+                    'email': [
+                        (
+                            'пользователь с таким адрес электронной почты '
+                            'уже существует.'
+                        ),
+                    ],
+                },
+            },
         ),
     },
 )
-@api_view(['POST'])
+@api_view(['GET'])
 @permission_classes([AllowAny])
 def email_verification(request):
-    data = request.data
-    if not data.get('email', False):
+    email = request.query_params.get('email')
+    if not email:
         return Response(
-            {'email': ['Обязательное поле.']},
+            {'error': 'Отсутствует обязательный параметр email!'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    email = data['email']
-    if not isinstance(email, str):
-        return Response(
-            {'email': ['Not a valid string.']},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    EmailSerializer(
+        data={'email': f'{email}'},
+        context={'request': request},
+    ).is_valid(raise_exception=True)
     return Response(
-        {'email_is_used': User.objects.filter(email=email).exists()},
+        {'email': False},
         status=status.HTTP_200_OK,
     )
 
@@ -86,45 +96,28 @@ def email_verification(request):
     description=(
         'Получить статус продавца для пользователя, который отправил запрос.'
     ),
-    request={
-        status.HTTP_201_CREATED: OpenApiRequest(
-            request={'example': {'inn': 1111211114}},
-        ),
-        status.HTTP_400_BAD_REQUEST: OpenApiRequest(
-            request={'example': {}},
-        ),
-    },
-    responses={
-        status.HTTP_201_CREATED: OpenApiResponse(
-            response={'example': {'id': 1, 'user': 2, 'inn': '1111211114'}},
-        ),
-        status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            response={'example': {'inn': ['Обязательное поле.']}},
-        ),
-    },
+    request=SellerSerializer,
+    responses=SellerSerializer,
+)
+@extend_schema(
+    methods=['PUT'],
+    summary=('Изменить данные продавца целиком'),
+    description=(
+        'Изменить данные продавца целиком для пользователя, '
+        'который отправил запрос.'
+    ),
+    request=SellerUpdateSerializer,
+    responses=SellerUpdateSerializer,
 )
 @extend_schema(
     methods=['PATCH'],
     summary=('Изменить данные продавца частично'),
     description=(
-        'Изменить данные продавца для пользователя, который отправил запрос.'
+        'Изменить данные продавца частично для пользователя, '
+        'который отправил запрос.'
     ),
-    request={
-        status.HTTP_200_OK: OpenApiRequest(
-            request={'example': {'inn': 2225455212}},
-        ),
-        status.HTTP_400_BAD_REQUEST: OpenApiRequest(
-            request={'example': {}},
-        ),
-    },
-    responses={
-        status.HTTP_200_OK: OpenApiResponse(
-            response={'example': {'id': 1, 'user': 2, 'inn': '2225455212'}},
-        ),
-        status.HTTP_400_BAD_REQUEST: OpenApiResponse(
-            response={'example': {'inn': ['Обязательное поле.']}},
-        ),
-    },
+    request=SellerUpdateSerializer(partial=True),
+    responses=SellerUpdateSerializer,
 )
 @extend_schema(
     methods=['DELETE'],
@@ -136,7 +129,7 @@ def email_verification(request):
         status.HTTP_204_NO_CONTENT: OpenApiResponse(),
     },
 )
-@api_view(['POST', 'PATCH', 'DELETE'])
+@api_view(['POST', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([AuthorCanEditAndDelete])
 def become_seller(request):
     '''Получить статус продавца.'''
@@ -156,17 +149,25 @@ def become_seller(request):
             {'errors': 'Вы не являетесь продавцом!'},
             status=status.HTTP_400_BAD_REQUEST,
         )
-    if request.method == 'PATCH':
+    if request.method == 'DELETE':
+        user = User.objects.get(pk=seller.user.id)
+        user.is_seller = False
+        user.save()
+        seller.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+    if request.method == 'PUT':
         serializer = SellerUpdateSerializer(
             seller,
             data=request.data,
             context={'request': request},
         )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-    user = User.objects.get(pk=seller.user.id)
-    user.is_seller = False
-    user.save()
-    seller.delete()
-    return Response(status=status.HTTP_204_NO_CONTENT)
+    else:
+        serializer = SellerUpdateSerializer(
+            seller,
+            data=request.data,
+            context={'request': request},
+            partial=True,
+        )
+    serializer.is_valid(raise_exception=True)
+    serializer.save()
+    return Response(serializer.data, status=status.HTTP_200_OK)
