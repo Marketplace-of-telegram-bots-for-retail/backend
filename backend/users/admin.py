@@ -23,4 +23,10 @@ class UserAdmin(BaseAdmin):
 
 @admin.register(Seller)
 class SellerAdmin(BaseAdmin):
-    list_display = ('pk', 'user', 'inn')
+    list_display = (
+        'pk',
+        'user',
+        'inn',
+        'store_name',
+        'organization_name',
+    )

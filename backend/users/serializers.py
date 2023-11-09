@@ -28,6 +28,8 @@ class CustomUserSerializer(UserSerializer):
         )
 
     def update(self, instance, validated_data):
+        if self.context['request'].method == 'PUT':
+            instance.photo = None
         for key, value in validated_data.items():
             if key != 'id':
                 if key == 'email':
@@ -92,6 +94,14 @@ class CustomUserCreatePasswordRetypeSerializer(CustomUserCreateSerializer):
             self.fail('password_mismatch')
 
 
+class EmailSerializer(serializers.ModelSerializer):
+    '''Сериализатор для проверки email.'''
+
+    class Meta:
+        model = User
+        fields = ('email',)
+
+
 class SellerSerializer(serializers.ModelSerializer):
     '''Сериализатор для получения статуса продавца.'''
 
@@ -101,12 +111,10 @@ class SellerSerializer(serializers.ModelSerializer):
         read_only_fields = ('user',)
 
     def validate(self, attrs):
-        request = self.context['request']
-        if request.method == 'POST':
-            if Seller.objects.filter(user=request.user).exists():
-                raise serializers.ValidationError(
-                    {'errors': 'Вы уже являетесь продавцом!'},
-                )
+        if Seller.objects.filter(user=self.context['request'].user).exists():
+            raise serializers.ValidationError(
+                {'errors': 'Вы уже являетесь продавцом!'},
+            )
         return super().validate(attrs)
 
     def create(self, validated_data):
@@ -114,3 +122,44 @@ class SellerSerializer(serializers.ModelSerializer):
         user.is_seller = True
         user.save()
         return super().create(validated_data)
+
+
+class SellerUpdateSerializer(serializers.ModelSerializer):
+    '''Сериализатор для обновления данных продавца.'''
+
+    logo = Base64ImageField(required=False)
+
+    class Meta:
+        model = Seller
+        fields = (
+            'id',
+            'user',
+            'inn',
+            'logo',
+            'store_name',
+            'organization_name',
+            'organization_type',
+            'bank_name',
+            'ogrn',
+            'kpp',
+            'bik',
+            'payment_account',
+            'correspondent_account',
+        )
+        read_only_fields = ('user',)
+
+    def update(self, instance, validated_data):
+        if self.context['request'].method == 'PUT':
+            (
+                instance.logo,
+                instance.store_name,
+                instance.organization_name,
+                instance.organization_type,
+                instance.bank_name,
+                instance.ogrn,
+                instance.kpp,
+                instance.bik,
+                instance.payment_account,
+                instance.correspondent_account,
+            ) = (None, None, None, None, None, None, None, None, None, None)
+        return super().update(instance, validated_data)
