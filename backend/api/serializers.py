@@ -203,10 +203,15 @@ class ReviewSerializer(serializers.ModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         request = self.context.get('request')
+        try:
+            photo_url = request.build_absolute_uri(instance.user.photo.url)
+        except ValueError:
+            photo_url = None
+
         data['user'] = {
             'user_id': instance.user.pk,
             'username': instance.user.username,
-            'photo': request.build_absolute_uri(instance.user.photo.url)
+            'photo': photo_url
         }
         return data
 
