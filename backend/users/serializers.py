@@ -162,14 +162,4 @@ class SellerUpdateSerializer(serializers.ModelSerializer):
                 instance.payment_account,
                 instance.correspondent_account,
             ) = (None, None, None, None, None, None, None, None, None, None)
-            # instance.logo = None
-            # instance.store_name = None
-            # instance.organization_name = None
-            # instance.organization_type = None
-            # instance.bank_name = None
-            # instance.ogrn = None
-            # instance.kpp = None
-            # instance.bik = None
-            # instance.payment_account = None
-            # instance.correspondent_account = None
         return super().update(instance, validated_data)
