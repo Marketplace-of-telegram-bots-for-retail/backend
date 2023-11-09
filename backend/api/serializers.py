@@ -196,9 +196,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        exclude = [
-            'is_active',
-        ]
+        exclude = ('created', 'modified', 'is_active')
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
