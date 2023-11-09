@@ -196,9 +196,7 @@ class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Review
-        exclude = [
-            'is_active',
-        ]
+        exclude = ('created', 'modified', 'is_active')
 
 
 class ReviewListSerializer(serializers.ModelSerializer):
