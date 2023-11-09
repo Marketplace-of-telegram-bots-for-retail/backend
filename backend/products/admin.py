@@ -1,7 +1,6 @@
 from django.contrib import admin
 
 from core.admin import BaseAdmin
-from core.utils import cut_string
 from products.models import (
     Category,
     Favorite,
@@ -14,6 +13,7 @@ from products.models import (
     ShoppingCart,
     ShoppingCart_Items,
 )
+from products.utils import cut_string
 
 
 class OrderProductListInline(admin.TabularInline):

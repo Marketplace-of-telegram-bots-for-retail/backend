@@ -27,7 +27,8 @@ from api.serializers import (
     CategorySerializer,
     FavoriteSerializer,
     OrderSerializer,
-    ProductReadOnlySerializer,
+    ProductListSerializer,
+    ProductRetrieveSerializer,
     ProductSerializer,
     ReviewListSerializer,
     ReviewSerializer,
@@ -236,8 +237,10 @@ class ProductAPIView(CRUDAPIView):
         serializer.save(user=self.request.user)
 
     def get_serializer_class(self):
-        if self.action in ('list', 'retrieve'):
-            return ProductReadOnlySerializer
+        if self.action == 'list':
+            return ProductListSerializer
+        if self.action == 'retrieve':
+            return ProductRetrieveSerializer
         return ProductSerializer
 
     def get_queryset(self):

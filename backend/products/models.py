@@ -8,7 +8,7 @@ from django.core.validators import (
 from django.db import models
 
 from core.models import TimestampedModel
-from core.utils import cut_string
+from products.utils import cut_string
 from users.models import User
 
 PAY_METHOD_CHOICES = [
@@ -67,7 +67,7 @@ class Product(TimestampedModel):
     )
     name = models.CharField(
         'название бота',
-        max_length=70,
+        max_length=60,
         validators=[MinLengthValidator(20)],
     )
     description = models.TextField(
