@@ -271,7 +271,7 @@ class ReviewSerializer(serializers.ModelSerializer):
         data['user'] = {
             'user_id': instance.user.pk,
             'username': instance.user.username,
-            'photo': photo_url
+            'photo': photo_url,
         }
         return data
 
