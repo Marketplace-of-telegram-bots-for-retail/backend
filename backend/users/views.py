@@ -15,8 +15,8 @@ from users.models import Seller, User
 from users.serializers import (
     CustomUserSerializer,
     EmailSerializer,
+    SellerCreateSerializer,
     SellerSerializer,
-    SellerUpdateSerializer,
 )
 
 
@@ -91,13 +91,21 @@ def email_verification(request):
 
 
 @extend_schema(
+    methods=['GET'],
+    summary=('Получить данные продавца'),
+    description=(
+        'Получить данные продавца для пользователя, который отправил запрос.'
+    ),
+    responses=SellerSerializer,
+)
+@extend_schema(
     methods=['POST'],
     summary=('Получить статус продавца'),
     description=(
         'Получить статус продавца для пользователя, который отправил запрос.'
     ),
-    request=SellerSerializer,
-    responses=SellerSerializer,
+    request=SellerCreateSerializer,
+    responses=SellerCreateSerializer,
 )
 @extend_schema(
     methods=['PUT'],
@@ -106,8 +114,8 @@ def email_verification(request):
         'Изменить данные продавца целиком для пользователя, '
         'который отправил запрос.'
     ),
-    request=SellerUpdateSerializer,
-    responses=SellerUpdateSerializer,
+    request=SellerSerializer,
+    responses=SellerSerializer,
 )
 @extend_schema(
     methods=['PATCH'],
@@ -116,8 +124,8 @@ def email_verification(request):
         'Изменить данные продавца частично для пользователя, '
         'который отправил запрос.'
     ),
-    request=SellerUpdateSerializer(partial=True),
-    responses=SellerUpdateSerializer,
+    request=SellerSerializer(partial=True),
+    responses=SellerSerializer,
 )
 @extend_schema(
     methods=['DELETE'],
@@ -129,13 +137,18 @@ def email_verification(request):
         status.HTTP_204_NO_CONTENT: OpenApiResponse(),
     },
 )
-@api_view(['POST', 'PUT', 'PATCH', 'DELETE'])
+@api_view(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])
 @permission_classes([AuthorCanEditAndDelete])
 def become_seller(request):
     '''Получить статус продавца.'''
 
+    if request.user.is_anonymous:
+        return Response(
+            {'detail': 'Учетные данные не были предоставлены.'},
+            status=status.HTTP_401_UNAUTHORIZED,
+        )
     if request.method == 'POST':
-        serializer = SellerSerializer(
+        serializer = SellerCreateSerializer(
             data=request.data,
             context={'request': request},
         )
@@ -149,6 +162,11 @@ def become_seller(request):
             {'errors': 'Вы не являетесь продавцом!'},
             status=status.HTTP_400_BAD_REQUEST,
         )
+    if request.method == 'GET':
+        return Response(
+            SellerSerializer(seller).data,
+            status=status.HTTP_200_OK,
+        )
     if request.method == 'DELETE':
         user = User.objects.get(pk=seller.user.id)
         user.is_seller = False
@@ -156,13 +174,13 @@ def become_seller(request):
         seller.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
     if request.method == 'PUT':
-        serializer = SellerUpdateSerializer(
+        serializer = SellerSerializer(
             seller,
             data=request.data,
             context={'request': request},
         )
     else:
-        serializer = SellerUpdateSerializer(
+        serializer = SellerSerializer(
             seller,
             data=request.data,
             context={'request': request},

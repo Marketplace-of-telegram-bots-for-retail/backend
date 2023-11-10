@@ -35,14 +35,14 @@ class User(AbstractUser, TimestampedModel):
     '''Кастомная модель пользователя.'''
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']
+    REQUIRED_FIELDS = []
 
     email = models.EmailField(
         'адрес электронной почты',
         unique=True,
         max_length=200,
     )
-    username = models.CharField(max_length=30, unique=True)
+    username = models.CharField(max_length=30)
     first_name = models.CharField(
         'имя',
         max_length=50,

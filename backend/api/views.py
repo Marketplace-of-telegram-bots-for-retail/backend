@@ -68,7 +68,7 @@ class CartViewSet(ReadOnlyModelViewSet):
     def get_queryset(self):
         return ShoppingCart.objects.filter(owner=self.request.user)
 
-    @action(methods=['post'], detail=False, permission_classes=(IsOwner,))
+    @action(methods=['POST'], detail=False, permission_classes=(IsOwner,))
     def promocode(self, request, *args, **kwargs):
         '''Ввод промокода для скидки.'''
 
@@ -181,7 +181,7 @@ class CategoryAPIView(ListRetrieveAPIView):
     ),
 )
 class ProductAPIView(CRUDAPIView):
-    '''Продукты.'''
+    '''Товары.'''
 
     pagination_class = Pagination
     permission_classes = (AuthorCanEditAndDelete,)
@@ -274,7 +274,7 @@ class ProductAPIView(CRUDAPIView):
         return queryset
 
     @action(
-        methods=['post', 'delete', 'patch'],
+        methods=['POST', 'DELETE', 'PATCH'],
         detail=True,
         permission_classes=(IsOwner,),
     )
@@ -334,7 +334,7 @@ class ProductAPIView(CRUDAPIView):
                 )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(methods=['patch'], detail=True, permission_classes=(IsOwner,))
+    @action(methods=['PATCH'], detail=True, permission_classes=(IsOwner,))
     def select(self, request, *args, **kwargs):
         '''Выбор элемента в корзине.'''
 
@@ -352,7 +352,7 @@ class ProductAPIView(CRUDAPIView):
             return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(
-        methods=['patch', 'delete'],
+        methods=['PATCH', 'DELETE'],
         detail=False,
         permission_classes=(IsOwner,),
     )
@@ -375,7 +375,7 @@ class ProductAPIView(CRUDAPIView):
             )
             return Response(serializer.data, status=status.HTTP_200_OK)
 
-    @action(methods=['delete'], detail=False, permission_classes=(IsOwner,))
+    @action(methods=['DELETE'], detail=False, permission_classes=(IsOwner,))
     def delete_all_selected(self, request, *args, **kwargs):
         '''Удаление всех выбранных элементов в корзине.'''
 
@@ -390,6 +390,42 @@ class ProductAPIView(CRUDAPIView):
             shopping_cart.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@extend_schema_view(
+    list=extend_schema(
+        summary='Получить список своих товаров',
+        description=('Возвращает список своих товаров.'),
+        parameters=[
+            OpenApiParameter(
+                name='ordering',
+                description=(
+                    'Сортировка. `ordering=-created` - `Сначала новые`. При '
+                    '`GET` запросе без этого параметра данные отсортированы '
+                    '`Сначала новые`. `ordering=created` - `Сначала старые`.'
+                    ' `ordering=price` - `Сначала дешевые`. `ordering=-price`'
+                    ' - `Сначала дорогие`.'
+                ),
+                required=False,
+                type=str,
+            ),
+        ],
+    ),
+    retrieve=extend_schema(
+        summary='Получить данные своего конкретного товара',
+        description=('Возвращает данные своего конкретного товара.'),
+    ),
+)
+class MyProductAPIView(ReadOnlyModelViewSet):
+    '''Мои товары.'''
+
+    pagination_class = Pagination
+    serializer_class = ProductSerializer
+    filter_backends = (OrderingFilter,)
+    ordering_fields = ('created', 'price')
+
+    def get_queryset(self):
+        return Product.objects.filter(user=self.request.user)
 
 
 @extend_schema_view(
@@ -502,7 +538,7 @@ class OrderViewSet(OrderAPIView):
             status=status.HTTP_200_OK,
         )
 
-    @action(detail=True, methods=['patch'])
+    @action(detail=True, methods=['PATCH'])
     def is_paid(self, request, pk):
         order = self.get_object()
         order.is_paid = True

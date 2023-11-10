@@ -102,7 +102,7 @@ class EmailSerializer(serializers.ModelSerializer):
         fields = ('email',)
 
 
-class SellerSerializer(serializers.ModelSerializer):
+class SellerCreateSerializer(serializers.ModelSerializer):
     '''Сериализатор для получения статуса продавца.'''
 
     class Meta:
@@ -124,7 +124,7 @@ class SellerSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
-class SellerUpdateSerializer(serializers.ModelSerializer):
+class SellerSerializer(serializers.ModelSerializer):
     '''Сериализатор для обновления данных продавца.'''
 
     logo = Base64ImageField(required=False)

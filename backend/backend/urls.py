@@ -7,7 +7,6 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 urlpatterns = [
     path('api/', include('api.urls')),
     path('admin/', admin.site.urls),
-    path('schema/', SpectacularAPIView.as_view(), name='schema'),
     path(
         'docs/',
         SpectacularSwaggerView.as_view(
@@ -15,6 +14,7 @@ urlpatterns = [
         ),
         name='swagger-ui',
     ),
+    path('schema/', SpectacularAPIView.as_view(), name='schema'),
 ]
 
 if settings.DEBUG:
