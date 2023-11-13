@@ -72,7 +72,7 @@ class Product(TimestampedModel):
     )
     description = models.TextField(
         'описание бота',
-        max_length=500,
+        max_length=1500,
         validators=[MinLengthValidator(50)],
     )
     images = models.ManyToManyField(
