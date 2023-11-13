@@ -148,7 +148,7 @@ class Review(TimestampedModel):
         'текст отзыва',
         validators=[MinLengthValidator(6)],
         max_length=500,
-        blank=True,
+        blank=False,
     )
 
     class Meta:
