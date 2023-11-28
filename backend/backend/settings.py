@@ -181,15 +181,15 @@ FIRST_ARTICLE = 100000
 FIRST_ORDER_NUMBER = 100000
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://bugaton1.acceleratorpracticum.ru',
-    'https://91.226.81.50',
+    'https://bugaton2.acceleratorpracticum.ru',
+    'https://185.93.109.95',
     'http://localhost:3000',
     'https://marketplace-of-telegram-bots-for-retail.github.io',
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'https://bugaton1.acceleratorpracticum.ru',
-    'https://91.226.81.50',
+    'https://bugaton2.acceleratorpracticum.ru',
+    'https://185.93.109.95',
     'http://localhost:3000',
     'https://marketplace-of-telegram-bots-for-retail.github.io',
 ]
