@@ -26,6 +26,16 @@ class Category(TimestampedModel):
         'название',
         max_length=200,
     )
+    background_color = models.CharField(
+        'цвет фона',
+        max_length=7
+    )
+    image = models.OneToOneField(
+        Image,
+        verbose_name='изображение категории',
+        blank=True,
+        through='ImageCategory',
+    )
 
     class Meta:
         verbose_name = 'категория'
