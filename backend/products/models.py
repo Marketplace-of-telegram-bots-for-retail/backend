@@ -94,7 +94,7 @@ class Product(TimestampedModel):
         blank=True,
         through='ImageProduct',
     )
-    video = models.TextField(
+    video = models.URLField(
         'ссылка на видео',
         blank=True,
         null=True,
