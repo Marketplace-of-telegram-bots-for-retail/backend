@@ -21,30 +21,6 @@ def user_directory_path(instance, filename):
     return f'products/{instance.user.id}/{filename}'
 
 
-class Category(TimestampedModel):
-    name = models.CharField(
-        'название',
-        max_length=200,
-    )
-    background_color = models.CharField(
-        'цвет фона',
-        max_length=7
-    )
-    image = models.OneToOneField(
-        Image,
-        verbose_name='изображение категории',
-        blank=True,
-        through='ImageCategory',
-    )
-
-    class Meta:
-        verbose_name = 'категория'
-        verbose_name_plural = 'категории'
-
-    def __str__(self) -> str:
-        return cut_string(self.name)
-
-
 class Image(TimestampedModel):
     user = models.ForeignKey(
         User,
@@ -61,6 +37,33 @@ class Image(TimestampedModel):
     class Meta:
         verbose_name = 'изображение'
         verbose_name_plural = 'изображения'
+
+
+class Category(TimestampedModel):
+    name = models.CharField(
+        'название',
+        max_length=200,
+    )
+    background_color = models.CharField(
+        'цвет фона',
+        max_length=7,
+        blank=True,
+        null=True,
+    )
+    image = models.OneToOneField(
+        Image,
+        verbose_name='изображение категории',
+        blank=True,
+        null=True,
+        on_delete=models.CASCADE
+    )
+
+    class Meta:
+        verbose_name = 'категория'
+        verbose_name_plural = 'категории'
+
+    def __str__(self) -> str:
+        return cut_string(self.name)
 
 
 class Product(TimestampedModel):
