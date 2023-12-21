@@ -181,15 +181,15 @@ FIRST_ARTICLE = 100000
 FIRST_ORDER_NUMBER = 100000
 
 CSRF_TRUSTED_ORIGINS = [
-    'http://botmarketplace.ru/',
-    'http://45.155.207.42/',
+    'https://botmarketplace.ru/',
+    'https://45.155.207.42/',
     'http://localhost:3000',
     'https://marketplace-of-telegram-bots-for-retail.github.io',
 ]
 
 CORS_ALLOWED_ORIGINS = [
-    'http://botmarketplace.ru/',
-    'http://45.155.207.42/',
+    'https://botmarketplace.ru',
+    'https://45.155.207.42',
     'http://localhost:3000',
     'https://marketplace-of-telegram-bots-for-retail.github.io',
 ]
