@@ -57,6 +57,11 @@ class Category(TimestampedModel):
         null=True,
         on_delete=models.CASCADE
     )
+    is_used = models.BooleanField(
+        'статус использования',
+        blank=True,
+        null=True
+    )
 
     class Meta:
         verbose_name = 'категория'
